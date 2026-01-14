@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ArchiShield Pro - Command Center for Parametric Resilience & Zoning Audits. Vienna City Council Urban Resilience Division.">
+    <title>ArchiShield Pro | Command Center | Vienna 2036</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    
+    <!-- MapLibre GL JS -->
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Onboarding Modal (First-Time User Guide) -->
+    <div id="onboarding-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-secondary, #1a1a2e); border: 1px solid #333; border-radius: 16px; padding: 40px; max-width: 500px; text-align: center;">
+            <div id="onboard-step-1" class="onboard-step">
+                <div style="font-size: 3rem; margin-bottom: 20px;">👋</div>
+                <h2 style="color: #00ff41; margin-bottom: 16px;">Welcome to ArchiShield Pro</h2>
+                <p style="color: #aaa; line-height: 1.6; margin-bottom: 24px;">This tool helps you check if your building design meets Vienna's safety requirements. Let's get started!</p>
+                <button class="btn btn-primary onboard-next" style="padding: 12px 32px;" data-next="2">Next →</button>
+            </div>
+            <div id="onboard-step-2" class="onboard-step" style="display: none;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📍</div>
+                <h2 style="color: #00ccff; margin-bottom: 16px;">Step 1: Place Your Building</h2>
+                <p style="color: #aaa; line-height: 1.6; margin-bottom: 24px;">Click anywhere on the map to choose where your building will be. Different locations have different risks!</p>
+                <button class="btn btn-secondary onboard-prev" style="margin-right: 8px;">← Back</button>
+                <button class="btn btn-primary onboard-next" data-next="3">Next →</button>
+            </div>
+            <div id="onboard-step-3" class="onboard-step" style="display: none;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">📝</div>
+                <h2 style="color: #ff0066; margin-bottom: 16px;">Step 2: Enter Details</h2>
+                <p style="color: #aaa; line-height: 1.6; margin-bottom: 24px;">Fill in your building's height, material, and structure. The form is simple - just pick from dropdowns!</p>
+                <button class="btn btn-secondary onboard-prev" style="margin-right: 8px;">← Back</button>
+                <button class="btn btn-primary onboard-next" data-next="4">Next →</button>
+            </div>
+            <div id="onboard-step-4" class="onboard-step" style="display: none;">
+                <div style="font-size: 3rem; margin-bottom: 20px;">🚀</div>
+                <h2 style="color: #ffaa00; margin-bottom: 16px;">Step 3: Run Audit</h2>
+                <p style="color: #aaa; line-height: 1.6; margin-bottom: 24px;">Click the big "Run Audit" button. We'll check Flood, Wind, Heat, and Earthquake risks in seconds!</p>
+                <button class="btn btn-secondary onboard-prev" style="margin-right: 8px;">← Back</button>
+                <button class="btn btn-primary" id="onboard-finish" style="padding: 12px 32px;">Let's Go! 🎉</button>
+            </div>
+            <div style="margin-top: 24px;">
+                <label style="color: #666; font-size: 0.85rem; cursor: pointer;">
+                    <input type="checkbox" id="dont-show-again" style="margin-right: 8px;"> Don't show this again
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Preview Tooltip (Shown when dragging marker) -->
+    <div id="live-preview-tooltip" style="display: none; position: fixed; z-index: 1000; background: rgba(0,0,0,0.95); border: 1px solid #00ff41; border-radius: 8px; padding: 12px 16px; pointer-events: none; min-width: 200px;">
+        <div style="font-weight: 600; color: #00ff41; margin-bottom: 8px;">📊 Live Site Analysis</div>
+        <div id="preview-flood" style="color: #aaa; font-size: 0.9rem; margin-bottom: 4px;">🌊 Flood: Calculating...</div>
+        <div id="preview-wind" style="color: #aaa; font-size: 0.9rem; margin-bottom: 4px;">💨 Wind: Calculating...</div>
+        <div id="preview-heat" style="color: #aaa; font-size: 0.9rem; margin-bottom: 4px;">🔥 Heat: Calculating...</div>
+        <div id="preview-seismic" style="color: #aaa; font-size: 0.9rem;">🌋 Seismic: Calculating...</div>
+    </div>
+
+    <!-- Simulation HUD Overlay -->
+    <div id="simulation-hud" class="simulation-hud">
+        <div id="site-status-hud" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); padding: 8px 16px; border-radius: 20px; display: none; align-items: center; gap: 10px; border: 1px solid #333; backdrop-filter: blur(10px); z-index: 20;">
+        <div id="site-status-indicator" style="width: 12px; height: 12px; border-radius: 50%; background: #00ff41;"></div>
+        <div id="site-status-text" style="color: white; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;">SITE SECURE</div>
+    </div>
+    <div class="app-container">
+            <div class="hud-title">// ARCHISHIELD NEURAL ENGINE</div>
+            <div class="hud-scanner">
+                <div class="hud-grid"></div>
+                <div class="scan-line"></div>
+            </div>
+            <div id="hud-phase" class="hud-phase">Initializing Audit Protocol...</div>
+            <div class="hud-progress">
+                <div id="hud-progress-bar" class="hud-progress-bar" style="width: 0%"></div>
+            </div>
+            <div id="hud-percentage" class="hud-percentage">0%</div>
+        </div>
+    </div>
+
+    <!-- Command Center Layout -->
+    <div class="command-center">
+        <!-- Header -->
+        <header class="cc-header">
+            <div class="cc-logo">
+                <div class="cc-logo-icon">🛡️</div>
+                <div>
+                    <div class="cc-logo-text">ArchiShield Pro</div>
+                    <div class="cc-logo-subtitle">COMMAND CENTER v2.0</div>
+                </div>
+            </div>
+            <div class="cc-header-info">
+                <span>📍 Vienna, Austria</span>
+                <span>📅 2036</span>
+                <span>🏛️ City Council Certified</span>
+                <span id="current-time" style="font-family: var(--font-mono);">--:--:--</span>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="cc-sidebar">
+            <nav class="cc-nav">
+                <div class="cc-nav-section">
+                    <div class="cc-nav-title">Navigation</div>
+                    <div class="cc-nav-item active" data-view="audit">
+                        <span class="icon">📊</span>
+                        <span>New Audit</span>
+                    </div>
+                    <div class="cc-nav-item" data-view="history">
+                        <span class="icon">📜</span>
+                        <span>Audit History</span>
+                    </div>
+                    <div class="cc-nav-item" data-view="standards">
+                        <span class="icon">📐</span>
+                        <span>Regional Standards</span>
+                    </div>
+                </div>
+                
+                <div class="cc-nav-section">
+                    <div class="cc-nav-title">Vienna 2036 Layers</div>
+                    <div class="cc-nav-item">
+                        <span class="icon">🌋</span>
+                        <span>Seismic Zone</span>
+                    </div>
+                    <div class="cc-nav-item">
+                        <span class="icon">🌊</span>
+                        <span>Flood Plain</span>
+                    </div>
+                    <div class="cc-nav-item">
+                        <span class="icon">💨</span>
+                        <span>Wind Corridor</span>
+                    </div>
+                    <div class="cc-nav-item">
+                        <span class="icon">🔥</span>
+                        <span>Heat Island</span>
+                    </div>
+                </div>
+
+                <div class="cc-nav-section">
+                    <div class="cc-nav-title">Quick Stats</div>
+                    <div style="padding: 0 var(--space-md);">
+                        <div class="telemetry-card" style="margin-bottom: var(--space-sm);">
+                            <div class="telemetry-label">Audits Today</div>
+                            <div class="telemetry-value green" id="audits-today">0</div>
+                        </div>
+                        <div class="telemetry-card">
+                            <div class="telemetry-label">Approval Rate</div>
+                            <div class="telemetry-value amber" id="approval-rate">--%</div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Viewport -->
+        <main class="cc-viewport">
+            <!-- View: New Audit -->
+            <div id="view-audit" class="view-panel active">
+                <!-- 3D Map Viewport -->
+                <div class="viewport-container" id="viewport-3d">
+                    <!-- MapLibre GL Map -->
+                    <div id="map" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0;"></div>
+                    
+                    <!-- Map Controls Overlay -->
+                    <div id="map-controls" style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; flex-direction: column; gap: 8px;">
+                        <button id="btn-toggle-3d" class="map-control-btn" title="Toggle 3D Buildings">🏢</button>
+                        <button id="btn-toggle-flood" class="map-control-btn" title="Toggle Flood Zone">🌊</button>
+                        <button id="btn-toggle-seismic" class="map-control-btn" title="Toggle Seismic Zone">🌋</button>
+                        <button id="btn-center-sofia" class="map-control-btn" title="Center on Vienna">📍</button>
+                    </div>
+                    
+                    <!-- Coordinates Display -->
+                    <div class="viewport-marker" id="coords-display">
+                        <span class="viewport-marker-dot"></span>
+                        <span id="coords-text">48.2082° N, 16.3738° E</span>
+                    </div>
+                    
+                    <!-- Building Marker (shown when building is placed) -->
+                    <div id="building-marker" style="display: none; position: absolute; z-index: 5;">
+                        <div style="width: 20px; height: 20px; background: var(--color-resilient); border-radius: 50%; border: 3px solid white; box-shadow: 0 0 20px var(--color-resilient);"></div>
+                    </div>
+                </div>
+
+                <!-- Status Badges (hidden until audit runs) -->
+                <div id="status-badges" class="status-badges" style="display: none;">
+                    <div id="badge-permit" class="status-badge crisis">
+                        <span class="status-badge-label">PERMIT STATUS</span>
+                        <span class="status-badge-value" id="badge-permit-value">DENIED</span>
+                    </div>
+                    <div id="badge-zoning" class="status-badge warning">
+                        <span class="status-badge-label">ZONING COMPLIANCE</span>
+                        <span class="status-badge-value" id="badge-zoning-value">--%</span>
+                    </div>
+                    <div id="badge-resilience" class="status-badge resilient">
+                        <span class="status-badge-label">RESILIENCE SCORE</span>
+                        <span class="status-badge-value" id="badge-resilience-value">--</span>
+                    </div>
+                </div>
+
+                <!-- Input Section -->
+                <section class="input-section">
+                    <!-- Mode Toggle -->
+                    <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg);">
+                        <span style="color: var(--text-secondary); font-size: 0.9rem;">Input Mode:</span>
+                        <button id="btn-simple-mode" class="btn btn-primary" style="padding: 8px 16px;">🎯 Simple Form</button>
+                        <button id="btn-json-mode" class="btn btn-secondary" style="padding: 8px 16px;">📝 JSON</button>
+                    </div>
+
+                    <!-- Simple Mode Form -->
+                    <div id="simple-mode-form" class="input-grid" style="display: block;">
+                        <div class="drop-zone" id="drop-zone">
+                            <div class="drop-zone-icon">📍</div>
+                            <div class="drop-zone-text">Click on the map to place your building</div>
+                            <div class="drop-zone-hint">or drop a GeoJSON file here</div>
+                            <input type="file" id="file-input" accept=".json,.geojson" style="display: none;">
+                        </div>
+
+                        <!-- Expanded Simple Form -->
+                        <div class="precision-fields" style="margin-top: var(--space-lg);">
+                            <div class="precision-field" style="grid-column: span 2;">
+                                <span class="precision-label">Building Name</span>
+                                <input type="text" class="precision-input" id="input-name" placeholder="My Building" style="width: 100%;">
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Height</span>
+                                <input type="number" class="precision-input" id="input-height" placeholder="30" step="1" value="30">
+                                <span class="precision-unit">m</span>
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Floors</span>
+                                <input type="number" class="precision-input" id="input-floors" placeholder="10" step="1" value="10">
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Footprint</span>
+                                <input type="number" class="precision-input" id="input-footprint" placeholder="1500" step="100" value="1500">
+                                <span class="precision-unit">m²</span>
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Lot Area</span>
+                                <input type="number" class="precision-input" id="input-lot" placeholder="3000" step="100" value="3000">
+                                <span class="precision-unit">m²</span>
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Material</span>
+                                <select id="input-material" class="precision-input" style="width: 100%; padding: 8px;">
+                                    <option value="reinforced_concrete">Reinforced Concrete</option>
+                                    <option value="steel">Steel Frame</option>
+                                    <option value="timber">Timber / CLT</option>
+                                    <option value="masonry">Masonry / Brick</option>
+                                    <option value="green_facade">Green Facade</option>
+                                </select>
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Structure</span>
+                                <select id="input-structure" class="precision-input" style="width: 100%; padding: 8px;">
+                                    <option value="dual_system">Dual System (Best)</option>
+                                    <option value="moment_frame">Moment Frame</option>
+                                    <option value="shear_wall">Shear Wall</option>
+                                    <option value="bearing_wall">Bearing Wall</option>
+                                </select>
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Foundation Depth</span>
+                                <input type="number" class="precision-input" id="input-foundation" placeholder="5" step="0.5" value="5">
+                                <span class="precision-unit">m</span>
+                            </div>
+                            <div class="precision-field">
+                                <span class="precision-label">Window-Wall Ratio</span>
+                                <input type="number" class="precision-input" id="input-wwr" placeholder="35" step="5" min="0" max="100" value="35">
+                                <span class="precision-unit">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- JSON Mode (hidden by default) -->
+                    <div id="json-mode-form" style="display: none; margin-top: var(--space-lg);">
+                        <textarea id="building-input" class="console-output" style="width: 100%; height: 200px; resize: vertical; padding: var(--space-md); background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); color: var(--text-primary); font-family: var(--font-mono); font-size: 0.85rem;" placeholder='Paste building JSON here...'>{
+    "name": "Example Tower",
+    "height": 35,
+    "floors": 10,
+    "ground_floor_material": "reinforced_concrete",
+    "structural_system": "dual_system",
+    "footprint_area": 1500,
+    "lot_area": 3000
+}</textarea>
+                    </div>
+
+                    <!-- Progress Animation (hidden until audit runs) -->
+                    <div id="audit-progress" style="display: none; margin-top: var(--space-lg); padding: var(--space-md); background: var(--bg-secondary); border-radius: var(--radius-md);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span id="progress-phase" style="color: var(--text-primary); font-weight: 600;">Initializing...</span>
+                            <span id="progress-percent" style="color: var(--accent-primary);">0%</span>
+                        </div>
+                        <div style="height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden;">
+                            <div id="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-resilient), var(--accent-primary)); transition: width 0.3s ease;"></div>
+                        </div>
+                        <div id="progress-steps" style="margin-top: 12px; font-size: 0.85rem; color: var(--text-secondary);"></div>
+                    </div>
+
+                    <!-- Plain English Summary (hidden until audit completes) -->
+                    <div id="plain-summary" style="display: none; margin-top: var(--space-lg); padding: var(--space-lg); background: linear-gradient(135deg, rgba(0,255,65,0.1), rgba(0,200,255,0.1)); border: 1px solid var(--color-resilient); border-radius: var(--radius-lg);">
+                        <div style="font-size: 1.3rem; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">
+                            <span id="summary-icon">🟢</span> <span id="summary-title">All Checks Passed!</span>
+                        </div>
+                        <div id="summary-text" style="color: var(--text-secondary); line-height: 1.6;">
+                            Your building passes all 4 safety audits. It's ready for permit submission.
+                        </div>
+                        <div id="summary-action" style="margin-top: var(--space-md); display: none;">
+                            <button id="btn-fix-issues" class="btn btn-primary" style="background: var(--color-warning);">🔧 Show Me How to Fix</button>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="margin-top: var(--space-lg); display: flex; gap: var(--space-md); flex-wrap: wrap;">
+                        <button id="btn-run-audit" class="btn btn-primary" style="font-size: 1.1rem; padding: 12px 24px;">
+                            🚀 Run Audit
+                        </button>
+                        <button id="btn-load-passing" class="btn btn-secondary">
+                            ✓ Load Passing Sample
+                        </button>
+                        <button id="btn-load-failing" class="btn btn-secondary">
+                            ✗ Load Failing Sample
+                        </button>
+                        <button id="btn-clear" class="btn btn-secondary">
+                            🗑️ Clear
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Audit Results (hidden initially) -->
+                <section id="audit-results" style="display: none;">
+                    <!-- Audit Cards Grid -->
+                    <div class="audit-grid" id="audit-cards">
+                        <!-- Dynamically populated -->
+                    </div>
+
+                    <!-- Remediation Panel -->
+                    <div id="remediation-panel" class="remediation-panel" style="display: none;">
+                        <div class="remediation-header">
+                            <div class="remediation-title">⚠️ Parametric Remediations Required</div>
+                        </div>
+                        <div class="remediation-grid" id="remediation-cards">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="export-section">
+                        <div class="export-info">
+                            <strong>Export Audit Package</strong> — Generate official permit documentation
+                        </div>
+                        <div class="export-buttons">
+                            <button id="btn-export-json" class="btn btn-secondary">📄 JSON</button>
+                            <button id="btn-export-md" class="btn btn-secondary">📝 Markdown</button>
+                            <button id="btn-export-geojson" class="btn btn-secondary">🗺️ GeoJSON</button>
+                            <button id="btn-export-dxf" class="btn btn-secondary">📐 DXF</button>
+                            <button id="btn-export-zip" class="btn btn-primary" disabled>📦 Full Package</button>
+                        </div>
+                    </div>
+
+                    <!-- Certificate Preview -->
+                    <div class="certificate-container">
+                        <div class="tabs">
+                            <div class="tab active" data-tab="preview">Certificate Preview</div>
+                            <div class="tab" data-tab="json">Raw JSON</div>
+                            <div class="tab" data-tab="reasoning">Detailed Reasoning</div>
+                        </div>
+                        <div id="tab-preview" class="tab-content active">
+                            <div class="certificate" id="certificate-preview">
+                                <!-- Certificate content -->
+                            </div>
+                        </div>
+                        <div id="tab-json" class="tab-content">
+                            <div class="console">
+                                <div class="console-header">
+                                    <span class="console-dot red"></span>
+                                    <span class="console-dot yellow"></span>
+                                    <span class="console-dot green"></span>
+                                </div>
+                                <pre class="console-output" id="certificate-json"></pre>
+                            </div>
+                        </div>
+                        <div id="tab-reasoning" class="tab-content">
+                            <div class="console">
+                                <div class="console-header">
+                                    <span class="console-dot red"></span>
+                                    <span class="console-dot yellow"></span>
+                                    <span class="console-dot green"></span>
+                                </div>
+                                <pre class="console-output" id="detailed-reasoning" style="max-height: 600px;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Console Log -->
+                <section style="padding: var(--space-lg);">
+                    <div class="console">
+                        <div class="console-header">
+                            <span class="console-dot red"></span>
+                            <span class="console-dot yellow"></span>
+                            <span class="console-dot green"></span>
+                        </div>
+                        <pre class="console-output" id="console-output">ArchiShield Pro v2.0 — Command Center
+Vienna 2036 Environmental + Regulatory Layers Active
+
+LOADED MODULES:
+• Wind Load Audit (ASCE 7-22)
+• Zoning Compliance (Vienna Urban Code)
+• Seismic Integrity (7.2M scenario)
+• Hydraulic Integrity (BFE + 1ft)
+• Thermal Envelope (72h grid failure)
+• Krems Ethics Protocol (shade + displacement)
+
+STATUS: Ready for audit
+Drop file or enter building specs to begin.</pre>
+                    </div>
+                </section>
+            </div>
+
+            <!-- View: History -->
+            <div id="view-history" class="view-panel" style="display: none; padding: var(--space-lg);">
+                <h2 style="margin-bottom: var(--space-lg); font-size: 1.25rem;">Audit History</h2>
+                <div class="history-timeline" id="history-timeline">
+                    <div style="text-align: center; color: var(--text-muted); padding: var(--space-xl);">
+                        <div style="font-size: 2rem; margin-bottom: var(--space-md);">📜</div>
+                        <div>No audit history yet</div>
+                        <div style="font-size: 0.85rem; margin-top: var(--space-sm);">Run an audit to begin tracking building evolution</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Standards -->
+            <div id="view-standards" class="view-panel" style="display: none; padding: var(--space-lg);">
+                <h2 style="margin-bottom: var(--space-lg); font-size: 1.25rem;">Vienna 2036 Regional Standards</h2>
+                <div class="audit-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">Maximum FAR</div>
+                        <div class="telemetry-value">2.5</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm);">Geschossflächenzahl (GFZ) limit</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">Max Building Height</div>
+                        <div class="telemetry-value">43<span style="font-size: 0.75rem;">m</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm);">UNESCO World Heritage buffer</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">Base Flood Elevation</div>
+                        <div class="telemetry-value amber">5.25<span style="font-size: 0.75rem;">m</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm);">Danube HQ100 + 0.45m freeboard</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">Peak Wind Speed</div>
+                        <div class="telemetry-value">95<span style="font-size: 0.75rem;">mph</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm);">Eurocode EN 1991-1-4</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">Seismic Design</div>
+                        <div class="telemetry-value">5.0<span style="font-size: 0.75rem;">M</span></div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm);">Vienna Basin Zone III</div>
+                    </div>
+                    <div class="telemetry-card">
+                        <div class="telemetry-label">Heatwave Scenario</div>
+                        <div class="telemetry-value amber">42°C / 96h</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-sm);">Grid failure survival (OIB 2036)</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Telemetry Panel -->
+        <aside class="cc-telemetry">
+            <div class="telemetry-title">Parametric Telemetry</div>
+            
+            <div class="telemetry-card">
+                <div class="telemetry-card-header">
+                    <span class="telemetry-label">Wind Pressure</span>
+                    <span style="font-size: 0.7rem;">💨</span>
+                </div>
+                <div class="telemetry-value" id="telem-wind">-- kPa</div>
+                <div class="telemetry-bar">
+                    <div class="telemetry-bar-fill" id="telem-wind-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="telemetry-card-header">
+                    <span class="telemetry-label">Thermal Load</span>
+                    <span style="font-size: 0.7rem;">🔥</span>
+                </div>
+                <div class="telemetry-value" id="telem-thermal">-- °C</div>
+                <div class="telemetry-bar">
+                    <div class="telemetry-bar-fill" id="telem-thermal-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="telemetry-card-header">
+                    <span class="telemetry-label">FAR Calculation</span>
+                    <span style="font-size: 0.7rem;">📐</span>
+                </div>
+                <div class="telemetry-value" id="telem-far">--</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: var(--space-xs);">Max: 2.5</div>
+                <div class="telemetry-bar">
+                    <div class="telemetry-bar-fill" id="telem-far-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="telemetry-card-header">
+                    <span class="telemetry-label">Flood Clearance</span>
+                    <span style="font-size: 0.7rem;">🌊</span>
+                </div>
+                <div class="telemetry-value" id="telem-flood">-- m</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: var(--space-xs);">Required: 5.25m</div>
+                <div class="telemetry-bar">
+                    <div class="telemetry-bar-fill" id="telem-flood-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="telemetry-card-header">
+                    <span class="telemetry-label">Seismic Drift</span>
+                    <span style="font-size: 0.7rem;">🌋</span>
+                </div>
+                <div class="telemetry-value" id="telem-seismic">--%</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: var(--space-xs);">Max: 2.0%</div>
+                <div class="telemetry-bar">
+                    <div class="telemetry-bar-fill" id="telem-seismic-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="telemetry-card">
+                <div class="telemetry-card-header">
+                    <span class="telemetry-label">Ethics Score</span>
+                    <span style="font-size: 0.7rem;">⚖️</span>
+                </div>
+                <div class="telemetry-value green" id="telem-ethics">--</div>
+                <div class="telemetry-bar">
+                    <div class="telemetry-bar-fill green" id="telem-ethics-bar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div style="margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--border-primary);">
+                <div class="telemetry-title">Simulation Status</div>
+                <div id="sim-status" style="font-size: 0.8rem; color: var(--color-resilient); font-family: var(--font-mono);">
+                    ● READY
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Load all JavaScript modules -->
+    <script src="js/core/constants.js"></script>
+    <script src="js/core/spatial_utils.js"></script>
+    <script src="js/core/validator.js"></script>
+    <script src="js/audits/seismic.js"></script>
+    <script src="js/audits/wind_load.js"></script>
+    <script src="js/audits/zoning.js"></script>
+    <script src="js/audits/hydraulic.js"></script>
+    <script src="js/audits/thermal.js"></script>
+    <script src="js/audits/ethics.js"></script>
+    <!-- Load Vienna Data Sectors (Sequentially to avoid thread main block, but async is better if independent) -->
+    <!-- We load them as sync scripts so variables are available. They are large, so initial load might pause. -->
+    <script src="js/data/vienna_water.js"></script>
+    <script src="js/remediation/genetic.js"></script>
+    <script src="js/output/certificate.js"></script>
+    <script src="js/output/export.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // =============================================================================
+        // ArchiShield Pro - Command Center Controller
+        // =============================================================================
+
+        // Sample Data
+        const SAMPLE_PASSING = {
+            "name": "Donau City Tower West",
+            "height": 42,
+            "floors": 12,
+            "material_density": 2500,
+            "foundation_depth": 8,
+            "ground_floor_elevation": 5.5,
+            "window_to_wall_ratio": 0.35,
+            "wwr_north": 0.38,
+            "wwr_south": 0.48,
+            "wwr_east": 0.28,
+            "wwr_west": 0.24,
+            "energy_autonomy_level": 90,
+            "ground_floor_material": "reinforced_concrete",
+            "footprint_area": 2100,
+            "lot_area": 5200,
+            "property_line_north": 22,
+            "property_line_south": 22,
+            "property_line_east": 18,
+            "property_line_west": 18,
+            "thermal_mass": 900,
+            "insulation_r_value": 7.0,
+            "occupancy": 480,
+            "structural_system": "dual_system",
+            "has_basement": true,
+            "has_backup_power": true,
+            "has_water_storage": true,
+            "adjacent_to_red_zone": false,
+            "roof_type": "green",
+            "latitude": 48.2341,
+            "longitude": 16.4142
+        };
+
+        const SAMPLE_FAILING = {
+            "name": "Josefstadt Altbau Retrofit",
+            "height": 22,
+            "floors": 6,
+            "material_density": 1900,
+            "foundation_depth": 2.0,
+            "ground_floor_elevation": 0,
+            "window_to_wall_ratio": 0.55,
+            "energy_autonomy_level": 12,
+            "ground_floor_material": "brick",
+            "footprint_area": 380,
+            "lot_area": 520,
+            "property_line_north": 3,
+            "property_line_south": 3,
+            "property_line_east": 2.5,
+            "property_line_west": 2.5,
+            "thermal_mass": 550,
+            "insulation_r_value": 1.5,
+            "occupancy": 95,
+            "structural_system": "bearing_wall",
+            "has_basement": false,
+            "has_backup_power": false,
+            "has_water_storage": false,
+            "adjacent_to_red_zone": true,
+            "roof_type": "pitched",
+            "latitude": 48.2105,
+            "longitude": 16.3478
+        };
+
+        // DOM Elements
+        const els = {
+            simulationHud: document.getElementById('simulation-hud'),
+            hudPhase: document.getElementById('hud-phase'),
+            hudProgressBar: document.getElementById('hud-progress-bar'),
+            hudPercentage: document.getElementById('hud-percentage'),
+            buildingInput: document.getElementById('building-input'),
+            consoleOutput: document.getElementById('console-output'),
+            dropZone: document.getElementById('drop-zone'),
+            fileInput: document.getElementById('file-input'),
+            statusBadges: document.getElementById('status-badges'),
+            auditResults: document.getElementById('audit-results'),
+            auditCards: document.getElementById('audit-cards'),
+            remediationPanel: document.getElementById('remediation-panel'),
+            remediationCards: document.getElementById('remediation-cards'),
+            certificatePreview: document.getElementById('certificate-preview'),
+            certificateJson: document.getElementById('certificate-json'),
+            detailedReasoning: document.getElementById('detailed-reasoning'),
+            buildingModel: document.getElementById('building-model'),
+            buildingTower: document.getElementById('building-tower'),
+            viewportMessage: document.getElementById('viewport-message'),
+            historyTimeline: document.getElementById('history-timeline')
+        };
+
+        // Precision input elements
+        const inputs = {
+            height: document.getElementById('input-height'),
+            wwr: document.getElementById('input-wwr'),
+            foundation: document.getElementById('input-foundation'),
+            footprint: document.getElementById('input-footprint')
+        };
+
+        // Telemetry elements
+        const telemetry = {
+            wind: document.getElementById('telem-wind'),
+            windBar: document.getElementById('telem-wind-bar'),
+            thermal: document.getElementById('telem-thermal'),
+            thermalBar: document.getElementById('telem-thermal-bar'),
+            far: document.getElementById('telem-far'),
+            farBar: document.getElementById('telem-far-bar'),
+            flood: document.getElementById('telem-flood'),
+            floodBar: document.getElementById('telem-flood-bar'),
+            seismic: document.getElementById('telem-seismic'),
+            seismicBar: document.getElementById('telem-seismic-bar'),
+            ethics: document.getElementById('telem-ethics'),
+            ethicsBar: document.getElementById('telem-ethics-bar'),
+            simStatus: document.getElementById('sim-status')
+        };
+
+        // State
+        let currentResult = null;
+        let auditHistory = JSON.parse(localStorage.getItem('archishield_history') || '[]');
+        let auditsToday = parseInt(localStorage.getItem('archishield_audits_today') || '0');
+
+        // =============================================================================
+        // Event Listeners
+        // =============================================================================
+
+        // Buttons
+        document.getElementById('btn-run-audit').addEventListener('click', runAudit);
+        document.getElementById('btn-load-passing').addEventListener('click', () => loadSample(SAMPLE_PASSING));
+        document.getElementById('btn-load-failing').addEventListener('click', () => loadSample(SAMPLE_FAILING));
+        document.getElementById('btn-clear').addEventListener('click', clearInput);
+
+        // Export buttons
+        document.getElementById('btn-export-json').addEventListener('click', () => downloadExport('json'));
+        document.getElementById('btn-export-md').addEventListener('click', () => downloadExport('md'));
+        document.getElementById('btn-export-geojson').addEventListener('click', () => downloadExport('geojson'));
+        document.getElementById('btn-export-dxf').addEventListener('click', () => downloadExport('dxf'));
+
+        // Navigation
+        document.querySelectorAll('.cc-nav-item[data-view]').forEach(item => {
+            item.addEventListener('click', () => switchView(item.dataset.view));
+        });
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        });
+
+        // Drop zone
+        els.dropZone.addEventListener('click', () => els.fileInput.click());
+        els.dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            els.dropZone.classList.add('dragover');
+        });
+        els.dropZone.addEventListener('dragleave', () => {
+            els.dropZone.classList.remove('dragover');
+        });
+        els.dropZone.addEventListener('drop', handleFileDrop);
+        els.fileInput.addEventListener('change', handleFileSelect);
+
+        // Precision inputs sync
+        Object.keys(inputs).forEach(key => {
+            if (inputs[key]) inputs[key].addEventListener('input', syncInputsToJSON);
+        });
+
+        // =============================================================================
+        // UX SIMPLIFICATION FEATURES
+        // =============================================================================
+        
+        // Feature 1: Onboarding Flow
+        function initOnboarding() {
+            const modal = document.getElementById('onboarding-modal');
+            const hasSeenOnboarding = localStorage.getItem('archishield_onboarding_seen');
+            
+            if (!hasSeenOnboarding && modal) {
+                modal.style.display = 'flex';
+                
+                // Step navigation
+                document.querySelectorAll('.onboard-next').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const nextStep = btn.dataset.next;
+                        document.querySelectorAll('.onboard-step').forEach(s => s.style.display = 'none');
+                        document.getElementById('onboard-step-' + nextStep).style.display = 'block';
+                    });
+                });
+                
+                document.querySelectorAll('.onboard-prev').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const currentStep = btn.closest('.onboard-step');
+                        const currentNum = parseInt(currentStep.id.split('-')[2]);
+                        document.querySelectorAll('.onboard-step').forEach(s => s.style.display = 'none');
+                        document.getElementById('onboard-step-' + (currentNum - 1)).style.display = 'block';
+                    });
+                });
+                
+                document.getElementById('onboard-finish').addEventListener('click', () => {
+                    if (document.getElementById('dont-show-again').checked) {
+                        localStorage.setItem('archishield_onboarding_seen', 'true');
+                    }
+                    modal.style.display = 'none';
+                });
+            } else if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Feature 6: Simple/JSON Mode Toggle
+        function initModeToggle() {
+            const btnSimple = document.getElementById('btn-simple-mode');
+            const btnJson = document.getElementById('btn-json-mode');
+            const simpleForm = document.getElementById('simple-mode-form');
+            const jsonForm = document.getElementById('json-mode-form');
+            
+            if (btnSimple) {
+                btnSimple.addEventListener('click', () => {
+                    btnSimple.classList.add('btn-primary');
+                    btnSimple.classList.remove('btn-secondary');
+                    btnJson.classList.add('btn-secondary');
+                    btnJson.classList.remove('btn-primary');
+                    simpleForm.style.display = 'block';
+                    jsonForm.style.display = 'none';
+                });
+            }
+            
+            if (btnJson) {
+                btnJson.addEventListener('click', () => {
+                    btnJson.classList.add('btn-primary');
+                    btnJson.classList.remove('btn-secondary');
+                    btnSimple.classList.add('btn-secondary');
+                    btnSimple.classList.remove('btn-primary');
+                    simpleForm.style.display = 'none';
+                    jsonForm.style.display = 'block';
+                    // Sync form to JSON when switching
+                    syncFormToJSON();
+                });
+            }
+        }
+        
+        // Sync Simple Form fields to JSON
+        function syncFormToJSON() {
+            const building = {
+                name: document.getElementById('input-name')?.value || 'My Building',
+                height: parseInt(document.getElementById('input-height')?.value) || 30,
+                floors: parseInt(document.getElementById('input-floors')?.value) || 10,
+                footprint_area: parseInt(document.getElementById('input-footprint')?.value) || 1500,
+                lot_area: parseInt(document.getElementById('input-lot')?.value) || 3000,
+                ground_floor_material: document.getElementById('input-material')?.value || 'reinforced_concrete',
+                structural_system: document.getElementById('input-structure')?.value || 'dual_system',
+                foundation_depth: parseFloat(document.getElementById('input-foundation')?.value) || 5,
+                window_to_wall_ratio: (parseInt(document.getElementById('input-wwr')?.value) || 35) / 100,
+                latitude: currentBuildingLat || 48.2082,
+                longitude: currentBuildingLng || 16.3738,
+                // Required fields for validation
+                material_density: 2400,
+                thermal_mass: 850,
+                insulation_r_value: 6.0,
+                energy_autonomy_level: 60,
+                ground_floor_elevation: 2.0,
+                occupancy: 200,
+                has_basement: true,
+                has_backup_power: true,
+                has_water_storage: true
+            };
+            
+            const textarea = document.getElementById('building-input');
+            if (textarea) {
+                textarea.value = JSON.stringify(building, null, 4);
+            }
+            return building;
+        }
+        
+        // Store current building location
+        let currentBuildingLat = 48.2082;
+        let currentBuildingLng = 16.3738;
+        
+        // Feature 7: Progress Animation
+        async function showProgressAnimation(phases) {
+            const container = document.getElementById('audit-progress');
+            const phaseEl = document.getElementById('progress-phase');
+            const percentEl = document.getElementById('progress-percent');
+            const barEl = document.getElementById('progress-bar');
+            const stepsEl = document.getElementById('progress-steps');
+            
+            if (!container) return;
+            
+            container.style.display = 'block';
+            stepsEl.innerHTML = '';
+            
+            for (let i = 0; i < phases.length; i++) {
+                const phase = phases[i];
+                const percent = Math.round(((i + 1) / phases.length) * 100);
+                
+                phaseEl.textContent = phase.name;
+                percentEl.textContent = percent + '%';
+                barEl.style.width = percent + '%';
+                
+                // Add step to list
+                stepsEl.innerHTML += `<div style="color: #00ff41;">✓ ${phase.name}</div>`;
+                
+                await new Promise(r => setTimeout(r, phase.delay || 300));
+            }
+            
+            // Hide after a short delay
+            setTimeout(() => { container.style.display = 'none'; }, 500);
+        }
+        
+        // Feature 3: Plain English Summary
+        function showPlainSummary(result) {
+            const container = document.getElementById('plain-summary');
+            const iconEl = document.getElementById('summary-icon');
+            const titleEl = document.getElementById('summary-title');
+            const textEl = document.getElementById('summary-text');
+            const actionEl = document.getElementById('summary-action');
+            
+            if (!container) return;
+            
+            container.style.display = 'block';
+            
+            // Count passes/fails
+            const audits = ['wind', 'seismic', 'hydraulic', 'thermal'];
+            let passed = 0;
+            let failed = [];
+            
+            // Use auditResults (the actual property name from ArchiShieldEngine)
+            const results = result.auditResults || result.audits || {};
+            
+            audits.forEach(key => {
+                if (results[key]) {
+                    if (results[key].passed || results[key].status === 'PASSED') {
+                        passed++;
+                    } else {
+                        failed.push(key);
+                    }
+                }
+            });
+            
+            if (failed.length === 0) {
+                iconEl.textContent = '🟢';
+                titleEl.textContent = 'All Checks Passed!';
+                textEl.textContent = `Your building passes all ${passed} safety audits. It's ready for permit submission.`;
+                container.style.borderColor = '#00ff41';
+                container.style.background = 'linear-gradient(135deg, rgba(0,255,65,0.1), rgba(0,200,255,0.1))';
+                actionEl.style.display = 'none';
+            } else if (failed.length <= 2) {
+                iconEl.textContent = '🟡';
+                titleEl.textContent = 'Almost There!';
+                const failedNames = failed.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(' and ');
+                textEl.textContent = `Your building passes ${passed} of ${passed + failed.length} checks. The ${failedNames} audit${failed.length > 1 ? 's' : ''} need attention.`;
+                container.style.borderColor = '#ffaa00';
+                container.style.background = 'linear-gradient(135deg, rgba(255,170,0,0.1), rgba(200,100,0,0.1))';
+                actionEl.style.display = 'block';
+            } else {
+                iconEl.textContent = '🔴';
+                titleEl.textContent = 'Major Issues Found';
+                textEl.textContent = `Your building fails ${failed.length} of ${passed + failed.length} safety checks. Please review the detailed results below.`;
+                container.style.borderColor = '#ff0066';
+                container.style.background = 'linear-gradient(135deg, rgba(255,0,102,0.1), rgba(150,0,50,0.1))';
+                actionEl.style.display = 'block';
+            }
+        }
+        
+        // Feature 5: Live Preview (update during marker drag)
+        function updateLivePreview(lat, lng) {
+            const tooltip = document.getElementById('live-preview-tooltip');
+            if (!tooltip) return;
+            
+            // Calculate quick estimates
+            let floodRisk = 'Safe';
+            let windShield = 'Calculating...';
+            let heatRisk = 'Low';
+            let seismicZone = lng < 16.35 ? 'Bedrock (Safe)' : 'Sediment (Caution)';
+            
+            // Flood check using VIENNA_WATER if available
+            if (typeof window.VIENNA_WATER !== 'undefined' && typeof SpatialUtils !== 'undefined') {
+                const dist = SpatialUtils.getMinDistanceToLines({ lat, lng }, window.VIENNA_WATER);
+                if (dist < 200) floodRisk = '⚠️ HIGH RISK (' + Math.round(dist) + 'm)';
+                else if (dist < 500) floodRisk = 'Medium (' + Math.round(dist) + 'm)';
+                else floodRisk = 'Safe (' + Math.round(dist) + 'm)';
+            }
+            
+            document.getElementById('preview-flood').textContent = '🌊 Flood: ' + floodRisk;
+            document.getElementById('preview-wind').textContent = '💨 Wind: ' + windShield;
+            document.getElementById('preview-heat').textContent = '🔥 Heat: ' + heatRisk;
+            document.getElementById('preview-seismic').textContent = '🌋 Seismic: ' + seismicZone;
+        }
+        
+        function showLivePreview(x, y) {
+            const tooltip = document.getElementById('live-preview-tooltip');
+            if (!tooltip) return;
+            tooltip.style.display = 'block';
+            tooltip.style.left = (x + 20) + 'px';
+            tooltip.style.top = (y + 20) + 'px';
+        }
+        
+        function hideLivePreview() {
+            const tooltip = document.getElementById('live-preview-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+        }
+        
+        // Initialize UX features on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initOnboarding();
+            initModeToggle();
+        });
+
+        // =============================================================================
+        // Core Functions
+        // =============================================================================
+
+        function loadSample(data) {
+            els.buildingInput.value = JSON.stringify(data, null, 4);
+            syncJSONToInputs(data);
+            updateBuildingModel(data);
+            logToConsole(`Loaded sample: "${data.name}"\nHeight: ${data.height}m | Floors: ${data.floors} | FAR: ${((data.footprint_area * data.floors) / data.lot_area).toFixed(2)}`);
+        }
+
+        function clearInput() {
+            els.buildingInput.value = '';
+            Object.keys(inputs).forEach(k => inputs[k].value = '');
+            els.buildingModel.style.display = 'none';
+            els.viewportMessage.style.display = 'block';
+            els.statusBadges.style.display = 'none';
+            els.auditResults.style.display = 'none';
+            logToConsole('Input cleared. Ready for new audit.');
+        }
+
+        async function runAudit() {
+            // Sync Simple Form to JSON if in Simple Mode
+            const simpleForm = document.getElementById('simple-mode-form');
+            if (simpleForm && simpleForm.style.display !== 'none') {
+                syncFormToJSON();
+            }
+            
+            const inputText = els.buildingInput.value.trim();
+            if (!inputText) {
+                logToConsole('ERROR: Please enter building data');
+                return;
+            }
+
+            // Show simulation HUD
+            showSimulationHUD();
+
+            try {
+                // Simulate phases
+                await simulatePhase('Parsing building specifications...', 10);
+                await simulatePhase('Loading environmental layers...', 25);
+                await simulatePhase('Running Flood Risk Analysis...', 40);
+                await simulatePhase('Running Wind Shielding Check...', 55);
+                await simulatePhase('Executing Heat Island Analysis...', 70);
+                await simulatePhase('Computing Seismic Resilience...', 85);
+                await simulatePhase('Generating certificate...', 95);
+
+                const result = await ArchiShieldEngine.runAudit(inputText);
+                currentResult = result;
+
+                await simulatePhase('Audit complete!', 100);
+                await new Promise(r => setTimeout(r, 500));
+                
+                hideSimulationHUD();
+
+                if (!result.success) {
+                    const errorMsg = result.error.message || (result.error.messages ? result.error.messages.join(', ') : JSON.stringify(result.error));
+                    logToConsole(`ERROR: ${errorMsg}`);
+                    return;
+                }
+
+                logToConsole(result.executionLog);
+                displayResults(result);
+                
+                // Show Plain English Summary (Feature 3)
+                showPlainSummary(result);
+                
+                saveToHistory(result);
+                auditsToday++;
+                localStorage.setItem('archishield_audits_today', auditsToday);
+                updateQuickStats();
+
+            } catch (error) {
+                hideSimulationHUD();
+                logToConsole(`CRITICAL ERROR: ${error.message}`);
+                console.error(error);
+            }
+        }
+
+        function displayResults(result) {
+            // Update status badges
+            els.statusBadges.style.display = 'flex';
+            
+            const permitBadge = document.getElementById('badge-permit');
+            const permitValue = document.getElementById('badge-permit-value');
+            permitValue.textContent = result.status;
+            permitBadge.className = 'status-badge ' + (
+                result.status === 'LEGAL & RESILIENT' ? 'resilient' :
+                result.status === 'NON-COMPLIANT' ? 'warning' : 'crisis'
+            );
+
+            const zoningScore = result.auditResults.zoning?.score || 0;
+            document.getElementById('badge-zoning-value').textContent = zoningScore.toFixed(0) + '%';
+            document.getElementById('badge-zoning').className = 'status-badge ' + (
+                zoningScore >= 80 ? 'resilient' : zoningScore >= 50 ? 'warning' : 'crisis'
+            );
+
+            document.getElementById('badge-resilience-value').textContent = result.globalScore.toFixed(0);
+            document.getElementById('badge-resilience').className = 'status-badge ' + (
+                result.globalScore >= 80 ? 'resilient' : result.globalScore >= 50 ? 'warning' : 'crisis'
+            );
+
+            // Update telemetry
+            updateTelemetry(result);
+
+            // Show audit results
+            els.auditResults.style.display = 'block';
+
+            // Display audit cards
+            displayAuditCards(result.auditResults);
+
+            // Display remediations
+            if (result.allRequirements && result.allRequirements.length > 0) {
+                displayRemediations(result.allRequirements);
+                els.remediationPanel.style.display = 'block';
+            } else {
+                els.remediationPanel.style.display = 'none';
+            }
+
+            // Display certificate
+            if (result.certificate) {
+                els.certificatePreview.innerHTML = renderMarkdown(result.certificate.markdown);
+                els.certificateJson.textContent = JSON.stringify(result.certificate.json, null, 2);
+            }
+
+            // Display reasoning
+            const reasoningText = Object.entries(result.detailedReasoning || {})
+                .map(([key, value]) => `\n═══ ${key.toUpperCase()} ═══\n${value || 'N/A'}`)
+                .join('\n');
+            els.detailedReasoning.textContent = reasoningText;
+
+            // Update building model
+            updateBuildingModel(result.building);
+
+            // Scroll to results
+            els.statusBadges.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function displayAuditCards(auditResults) {
+            const audits = [
+                { key: 'wind', icon: '💨', name: 'Wind Load' },
+                { key: 'zoning', icon: '📐', name: 'Zoning' },
+                { key: 'seismic', icon: '🌋', name: 'Seismic' },
+                { key: 'hydraulic', icon: '🌊', name: 'Hydraulic' },
+                { key: 'thermal', icon: '🔥', name: 'Thermal' },
+                { key: 'ethics', icon: '⚖️', name: 'Ethics' }
+            ];
+
+            els.auditCards.innerHTML = audits.map(audit => {
+                const result = auditResults[audit.key];
+                if (!result) return '';
+                
+                const passed = result.passed;
+                const score = result.score || 0;
+
+                return `
+                    <div class="audit-card ${passed ? 'passed' : 'failed'} animate-slideUp">
+                        <div class="audit-card-header">
+                            <span class="audit-icon">${audit.icon}</span>
+                            <span class="audit-score">${score.toFixed(0)}</span>
+                        </div>
+                        <div class="audit-name">${audit.name}</div>
+                        <div class="audit-code">${result.auditCode || result.code || audit.key.toUpperCase()}</div>
+                        <div class="audit-progress">
+                            <div class="audit-progress-bar" style="width: ${score}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayRemediations(requirements) {
+            els.remediationCards.innerHTML = requirements.slice(0, 8).map(req => `
+                <div class="remediation-card animate-slideUp">
+                    <div class="remediation-parameter">${req.parameter.replace(/_/g, ' ')}</div>
+                    <div class="remediation-values">
+                        <span class="remediation-current">${req.current}</span>
+                        <span class="remediation-arrow">→</span>
+                        <span class="remediation-required">${req.required}</span>
+                    </div>
+                    ${req.action ? `<div style="font-size: 0.8rem; color: var(--text-secondary);">${req.action}</div>` : ''}
+                    <div class="remediation-citation">📎 ${req.citation}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateTelemetry(result) {
+            const ar = result.auditResults;
+            
+            // Wind
+            if (ar.wind?.calculations?.p_total) {
+                const windP = ar.wind.calculations.p_total / 1000;
+                telemetry.wind.textContent = windP.toFixed(1) + ' kPa';
+                telemetry.windBar.style.width = Math.min(100, windP * 10) + '%';
+                telemetry.windBar.className = 'telemetry-bar-fill' + (windP > 5 ? ' red' : windP > 3 ? ' amber' : '');
+            }
+
+            // Thermal
+            if (ar.thermal?.calculations?.peakInternalTemp) {
+                const temp = ar.thermal.calculations.peakInternalTemp;
+                telemetry.thermal.textContent = temp.toFixed(1) + ' °C';
+                telemetry.thermalBar.style.width = Math.min(100, temp * 2) + '%';
+                telemetry.thermalBar.className = 'telemetry-bar-fill' + (temp > 40 ? ' red' : temp > 35 ? ' amber' : '');
+            }
+
+            // FAR
+            if (result.building?.actualFAR) {
+                const far = result.building.actualFAR;
+                telemetry.far.textContent = far.toFixed(2);
+                telemetry.farBar.style.width = Math.min(100, (far / 3.5) * 100) + '%';
+                telemetry.farBar.className = 'telemetry-bar-fill' + (far > 3.5 ? ' red' : far > 3 ? ' amber' : '');
+            }
+
+            // Flood
+            if (result.building?.ground_floor_elevation !== undefined) {
+                const elev = result.building.ground_floor_elevation;
+                telemetry.flood.textContent = elev.toFixed(1) + ' m';
+                telemetry.floodBar.style.width = Math.min(100, (elev / 5.5) * 100) + '%';
+                telemetry.floodBar.className = 'telemetry-bar-fill' + (elev < 5.5 ? ' red' : '');
+            }
+
+            // Seismic
+            if (ar.seismic?.calculations?.interstoryDrift) {
+                const drift = ar.seismic.calculations.interstoryDrift * 100;
+                telemetry.seismic.textContent = drift.toFixed(2) + '%';
+                telemetry.seismicBar.style.width = Math.min(100, (drift / 2) * 100) + '%';
+                telemetry.seismicBar.className = 'telemetry-bar-fill' + (drift > 2 ? ' red' : drift > 1.5 ? ' amber' : '');
+            }
+
+            // Ethics
+            if (ar.ethics?.score) {
+                telemetry.ethics.textContent = ar.ethics.score.toFixed(0);
+                telemetry.ethicsBar.style.width = ar.ethics.score + '%';
+                telemetry.ethics.className = 'telemetry-value ' + (ar.ethics.score >= 80 ? 'green' : ar.ethics.score >= 50 ? 'amber' : 'red');
+            }
+
+            telemetry.simStatus.innerHTML = result.status === 'LEGAL & RESILIENT' 
+                ? '● COMPLIANT' 
+                : '<span style="color: var(--color-crisis);">● NON-COMPLIANT</span>';
+        }
+
+        function updateBuildingModel(building) {
+            if (!building || !building.height) return;
+            
+            els.viewportMessage.style.display = 'none';
+            els.buildingModel.style.display = 'block';
+            
+            // Scale tower height based on building height
+            const maxHeight = 200;
+            const scaledHeight = Math.min(maxHeight, building.height * 3);
+            els.buildingTower.style.height = scaledHeight + 'px';
+            els.buildingTower.style.transform = `translateZ(${scaledHeight/2}px)`;
+        }
+
+        // =============================================================================
+        // Utility Functions
+        // =============================================================================
+
+        function showSimulationHUD() {
+            els.simulationHud.classList.add('active');
+        }
+
+        function hideSimulationHUD() {
+            els.simulationHud.classList.remove('active');
+        }
+
+        async function simulatePhase(text, progress) {
+            els.hudPhase.textContent = text;
+            els.hudProgressBar.style.width = progress + '%';
+            els.hudPercentage.textContent = progress + '%';
+            await new Promise(r => setTimeout(r, 150 + Math.random() * 100));
+        }
+
+        function logToConsole(msg) {
+            els.consoleOutput.textContent = msg;
+            els.consoleOutput.scrollTop = els.consoleOutput.scrollHeight;
+        }
+
+        function syncJSONToInputs(data) {
+            inputs.height.value = data.height || '';
+            inputs.wwr.value = (data.window_to_wall_ratio || 0) * 100 || '';
+            inputs.foundation.value = data.foundation_depth || '';
+            inputs.footprint.value = data.footprint_area || '';
+        }
+
+        function syncInputsToJSON() {
+            try {
+                const data = JSON.parse(els.buildingInput.value || '{}');
+                if (inputs.height.value) data.height = parseFloat(inputs.height.value);
+                if (inputs.wwr.value) data.window_to_wall_ratio = parseFloat(inputs.wwr.value) / 100;
+                if (inputs.foundation.value) data.foundation_depth = parseFloat(inputs.foundation.value);
+                if (inputs.footprint.value) data.footprint_area = parseFloat(inputs.footprint.value);
+                els.buildingInput.value = JSON.stringify(data, null, 4);
+                updateBuildingModel(data);
+            } catch (e) {
+                // Ignore parse errors during editing
+            }
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            els.dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) readFile(file);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) readFile(file);
+        }
+
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                els.buildingInput.value = e.target.result;
+                try {
+                    const data = JSON.parse(e.target.result);
+                    syncJSONToInputs(data);
+                    updateBuildingModel(data);
+                    logToConsole(`Loaded file: ${file.name}`);
+                } catch (err) {
+                    logToConsole(`File loaded but JSON parse failed: ${err.message}`);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view-panel').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.cc-nav-item[data-view]').forEach(i => i.classList.remove('active'));
+            document.getElementById(`view-${viewName}`).style.display = 'block';
+            document.querySelector(`.cc-nav-item[data-view="${viewName}"]`).classList.add('active');
+            
+            if (viewName === 'history') displayHistory();
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${tabName}`));
+        }
+
+        function downloadExport(type) {
+            if (!currentResult) return;
+            
+            let content, filename, mimeType;
+            
+            switch (type) {
+                case 'json':
+                    content = JSON.stringify(currentResult.certificate?.json || currentResult, null, 2);
+                    filename = `archishield-certificate-${Date.now()}.json`;
+                    mimeType = 'application/json';
+                    break;
+                case 'md':
+                    content = currentResult.certificate?.markdown || '';
+                    filename = `archishield-certificate-${Date.now()}.md`;
+                    mimeType = 'text/markdown';
+                    break;
+                case 'geojson':
+                    content = JSON.stringify(ArchiShieldEngine.exportGeoJSON(currentResult), null, 2);
+                    filename = `archishield-massing-${Date.now()}.geojson`;
+                    mimeType = 'application/geo+json';
+                    break;
+                case 'dxf':
+                    content = ArchiShieldEngine.exportDXF(currentResult);
+                    filename = `archishield-massing-${Date.now()}.dxf`;
+                    mimeType = 'application/dxf';
+                    break;
+            }
+            
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function saveToHistory(result) {
+            const entry = {
+                date: new Date().toISOString(),
+                name: result.building.name || 'Unnamed Building',
+                score: result.globalScore,
+                status: result.status
+            };
+            auditHistory.unshift(entry);
+            if (auditHistory.length > 50) auditHistory = auditHistory.slice(0, 50);
+            localStorage.setItem('archishield_history', JSON.stringify(auditHistory));
+        }
+
+        function displayHistory() {
+            if (auditHistory.length === 0) return;
+            
+            els.historyTimeline.innerHTML = auditHistory.map(entry => `
+                <div class="history-item">
+                    <div class="history-dot ${entry.status === 'LEGAL & RESILIENT' ? 'resilient' : entry.status === 'NON-COMPLIANT' ? 'warning' : 'crisis'}"></div>
+                    <div class="history-content">
+                        <div class="history-date">${new Date(entry.date).toLocaleString()}</div>
+                        <div class="history-name">${entry.name}</div>
+                        <div class="history-score">Score: ${entry.score.toFixed(0)} — ${entry.status}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateQuickStats() {
+            document.getElementById('audits-today').textContent = auditsToday;
+            const approvalRate = auditHistory.length > 0 
+                ? (auditHistory.filter(h => h.status === 'LEGAL & RESILIENT').length / auditHistory.length * 100).toFixed(0)
+                : '--';
+            document.getElementById('approval-rate').textContent = approvalRate + '%';
+        }
+
+        function renderMarkdown(md) {
+            if (!md) return '';
+            return md
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/```([\s\S]*?)```/gim, '<pre><code>$1</code></pre>')
+                .replace(/`([^`]+)`/gim, '<code>$1</code>')
+                .replace(/^\- (.*$)/gim, '<li>$1</li>')
+                .replace(/^---$/gim, '<hr>')
+                .replace(/\n/gim, '<br>');
+        }
+
+        // Update time
+        function updateTime() {
+            document.getElementById('current-time').textContent = new Date().toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Initialize
+        updateQuickStats();
+        console.log('ArchiShield Pro v2.0 — Command Center Ready');
+        console.log('Environment:', typeof SOFIA_2036 !== 'undefined' ? SOFIA_2036 : 'Loading...');
+
+        // =============================================================================
+        // MapLibre GL JS - 3D Map of Vienna
+        // =============================================================================
+
+        // Vienna coordinates
+        const SOFIA_CENTER = [16.3738, 48.2082];
+        let map;
+        let buildingMarker = null;
+        let show3DBuildings = true;
+        let showFloodZone = false;
+        let showSeismicZone = false;
+
+        // Initial Map Setup
+        function initMap() {
+            // Vienna Bounds for Restriction (South-West, North-East)
+            const bounds = [
+                [16.10, 48.10], // SW
+                [16.65, 48.35]  // NE
+            ];
+
+            map = new maplibregl.Map({
+                container: 'map',
+                style: {
+                    version: 8,
+                    sources: {
+                        'osm': {
+                            type: 'raster',
+                            tiles: [
+                                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                                'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                                'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                            ],
+                            tileSize: 256,
+                            attribution: '© OpenStreetMap contributors, © CARTO'
+                        }
+                    },
+                    layers: [{
+                        id: 'osm-tiles',
+                        type: 'raster',
+                        source: 'osm',
+                        minzoom: 0,
+                        maxzoom: 19
+                    }]
+                },
+                center: [16.3738, 48.2082], // Vienna
+                zoom: 12,
+                pitch: 45,
+                bearing: -17,
+                maxBounds: bounds, // User Request: Restrict to City
+                minZoom: 11,       // User Request: No World View
+                antialias: true
+            });
+
+            map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+
+            map.on('load', () => {
+                console.log('MapLibre loaded - Vienna, Austria');
+                
+                // Add 3D buildings from OpenStreetMap
+                addBuildingsLayer();
+                
+                // Add flood zone overlay (simulated)
+                addFloodZoneLayer();
+                
+                // Add seismic zone overlay (simulated)
+                addSeismicZoneLayer();
+                
+                // Add click handler for placing buildings
+                map.on('click', handleMapClick);
+                
+                // Update coordinates on mouse move
+                map.on('mousemove', (e) => {
+                    document.getElementById('coords-text').textContent = 
+                        `${e.lngLat.lat.toFixed(4)}° N, ${e.lngLat.lng.toFixed(4)}° E`;
+                });
+            });
+
+            // Map control buttons
+            document.getElementById('btn-toggle-3d').addEventListener('click', toggle3DBuildings);
+            document.getElementById('btn-toggle-flood').addEventListener('click', toggleFloodZone);
+            document.getElementById('btn-toggle-seismic').addEventListener('click', toggleSeismicZone);
+            document.getElementById('btn-center-sofia').addEventListener('click', () => {
+                map.flyTo({ center: SOFIA_CENTER, zoom: 14, pitch: 45, bearing: -17.6 });
+            });
+        }
+
+        function addBuildingsLayer() {
+            // Initialize with empty source, will be populated by Overpass API
+            map.addSource('demo-buildings', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: []
+                }
+            });
+
+            map.addLayer({
+                id: '3d-buildings',
+                type: 'fill-extrusion',
+                source: 'demo-buildings',
+                paint: {
+                    'fill-extrusion-color': [
+                        'case',
+                        ['==', ['get', 'type'], 'proposed'], '#00ff41',
+                        ['has', 'height'], '#3a3a5e',
+                        '#2a2a4e'
+                    ],
+                    'fill-extrusion-height': [
+                        'coalesce',
+                        ['get', 'height'],
+                        ['*', ['get', 'levels'], 3.5],
+                        15
+                    ],
+                    'fill-extrusion-base': 0,
+                    'fill-extrusion-opacity': 0.85
+                }
+            });
+
+            // Fetch real buildings from OpenStreetMap
+            fetchViennaBuildings();
+        }
+
+        // Sector Definitions (Simulated Bounding Boxes matching fetch_sectors.sh)
+        // NW: 48.215,16.18 -> 48.32,16.38
+        // NE: 48.215,16.38 -> 48.32,16.58
+        // SW: 48.11,16.18 -> 48.215,16.38
+        // SE: 48.11,16.38 -> 48.215,16.58
+        
+        // Sector Definitions (Approximating Vienna's Shape - Chamfered Corners)
+        const SECTOR_GEOJSON = {
+            type: 'FeatureCollection',
+            features: [
+                {
+                    type: 'Feature', 
+                    properties: { id: 'NW', color: '#00ccff', name: 'North West', status: 'unloaded', label: 'North West\n(Click to Load)' },
+                    geometry: { 
+                        type: 'Polygon', 
+                        coordinates: [[
+                            [16.375, 48.210], // Center
+                            [16.375, 48.320], // North
+                            [16.250, 48.320], // NW Edge (Chamfer)
+                            [16.180, 48.250], // West Edge (Chamfer)
+                            [16.180, 48.210], // West Axis
+                            [16.375, 48.210]  // Close
+                        ]] 
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: { id: 'NE', color: '#ff0066', name: 'North East', status: 'unloaded', label: 'North East\n(Click to Load)' },
+                    geometry: { 
+                        type: 'Polygon', 
+                        coordinates: [[
+                            [16.375, 48.210], 
+                            [16.580, 48.210], // East Axis 
+                            [16.580, 48.250], // East Edge (Chamfer)
+                            [16.500, 48.320], // NE Edge (Chamfer)
+                            [16.375, 48.320], // North
+                            [16.375, 48.210]
+                        ]] 
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: { id: 'SW', color: '#00ff41', name: 'South West', status: 'unloaded', label: 'South West\n(Click to Load)' },
+                    geometry: { 
+                        type: 'Polygon', 
+                        coordinates: [[
+                            [16.375, 48.210], 
+                            [16.180, 48.210], // West Axis
+                            [16.180, 48.150], // SW Edge (Chamfer)
+                            [16.250, 48.110], // South Edge (Chamfer)
+                            [16.375, 48.110], // South
+                            [16.375, 48.210]
+                        ]] 
+                    }
+                },
+                {
+                    type: 'Feature',
+                    properties: { id: 'SE', color: '#ffaa00', name: 'South East', status: 'unloaded', label: 'South East\n(Click to Load)' },
+                    geometry: { 
+                        type: 'Polygon', 
+                        coordinates: [[
+                            [16.375, 48.210], 
+                            [16.375, 48.110], // South
+                            [16.500, 48.110], // SE Edge (Chamfer)
+                            [16.580, 48.150], // East Edge (Chamfer)
+                            [16.580, 48.210], // East Axis
+                            [16.375, 48.210]
+                        ]] 
+                    }
+                }
+            ]
+        };
+
+        let isHoveringInteractiveLayer = false;
+
+        async function initSectorPicker() {
+            logToConsole('🌐 Initializing Sector Picker...');
+            // ... (rest same)
+            
+            if (!map.getSource('sectors')) {
+                map.addSource('sectors', { type: 'geojson', data: SECTOR_GEOJSON });
+                
+                // 1. Fill Layer (Interactive)
+                // Opacity is 0.1 normally, 0.0 if 'loaded'
+                map.addLayer({
+                    'id': 'sectors-fill',
+                    'type': 'fill',
+                    'source': 'sectors',
+                    'paint': {
+                        'fill-color': ['get', 'color'],
+                        'fill-opacity': [
+                            'case',
+                            ['==', ['get', 'status'], 'loaded'], 0.0,
+                            0.1 // Default subtle fill
+                        ]
+                    }
+                });
+                
+                // 2. Line Layer (Borders)
+                // Border turns Solid Green when loaded, Dashed colored when unloaded
+                map.addLayer({
+                    'id': 'sectors-line',
+                    'type': 'line',
+                    'source': 'sectors',
+                    'paint': {
+                        'line-color': [
+                            'case',
+                            ['==', ['get', 'status'], 'loaded'], '#00ff41', // Bright Green if loaded
+                            ['get', 'color'] // Sector color otherwise
+                        ],
+                        'line-width': [
+                            'case',
+                            ['==', ['get', 'status'], 'loaded'], 2,
+                            4 // Thicker border for unloaded/clickable
+                        ],
+                        'line-dasharray': [
+                            'case',
+                            ['==', ['get', 'status'], 'loaded'], [1, 0], // Solid
+                            [2, 2] // Dashed
+                        ]
+                    }
+                });
+
+                // 3. Symbol Layer (Labels)
+                // Hide label when loaded
+                map.addLayer({
+                    'id': 'sectors-label',
+                    'type': 'symbol',
+                    'source': 'sectors',
+                    'layout': {
+                        'text-field': ['get', 'label'],
+                        'text-font': ['Open Sans Bold'],
+                        'text-size': 14,
+                        'text-anchor': 'center'
+                    },
+                    'paint': {
+                        'text-color': '#ffffff',
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 2,
+                        'text-opacity': [
+                            'case',
+                            ['==', ['get', 'status'], 'loaded'], 0,
+                            1
+                        ]
+                    }
+                });
+                
+                // Click Interaction
+                map.on('click', 'sectors-fill', (e) => {
+                    const props = e.features[0].properties;
+                    if (props.status === 'loaded') return; // Ignore if already active
+                    loadSector(props.id, props.name);
+                });
+                
+                // Cursor Interaction & State Blocking
+                map.on('mouseenter', 'sectors-fill', (e) => {
+                     // Check if loaded, if so, don't block? 
+                     // No, user might still want to see the border.
+                     // But if loaded, we want to allow placing buildings inside?
+                     // Yes. If status == 'loaded', we should NOT set isHoveringInteractiveLayer to true?
+                     
+                     // We can't access feature properties easily in mouseenter without querying.
+                     const features = map.queryRenderedFeatures(e.point, { layers: ['sectors-fill'] });
+                     if (features.length && features[0].properties.status !== 'loaded') {
+                         map.getCanvas().style.cursor = 'pointer';
+                         isHoveringInteractiveLayer = true;
+                     }
+                });
+                
+                map.on('mouseleave', 'sectors-fill', () => {
+                    map.getCanvas().style.cursor = '';
+                    isHoveringInteractiveLayer = false;
+                });
+                
+                logToConsole('ℹ️ Select a sector to load buildings.');
+            }
+        }
+
+        async function loadSector(id, name) {
+            logToConsole(`⌛ Loading ${name} (${id}) buildings...`);
+            
+            // 1. Check if Layer already exists
+            if (map.getSource(`buildings-${id.toLowerCase()}`)) {
+                logToConsole(`ℹ️ Sector ${id} already renderered.`);
+                return;
+            }
+
+            // 2. Dynamic Data Loading (Lazy Load JS)
+            const varName = `VIENNA_SECTOR_${id.toUpperCase()}`;
+            
+            if (typeof window[varName] === 'undefined') {
+                logToConsole(`📥 Downloading data for ${id}...`);
+                const startTime = Date.now();
+                
+                try {
+                    await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = `js/data/vienna_sector_${id.toLowerCase()}.js`;
+                        script.onload = () => resolve();
+                        script.onerror = () => reject(new Error(`Failed to load js/data/vienna_sector_${id.toLowerCase()}.js`));
+                        document.head.appendChild(script);
+                    });
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+                    logToConsole(`📦 Data loaded in ${duration}s. Parsing geometries...`);
+                } catch (err) {
+                    console.error(err);
+                    logToConsole(`❌ Error loading sector data: ${err.message}`);
+                    return;
+                }
+            }
+
+            // 3. Get Data
+            const osmData = window[varName];
+
+            if (!osmData) {
+                logToConsole(`⚠️ Data for Sector ${id} is empty/corrupt.`);
+                return;
+            }
+
+            // 4. Process & Render (Async)
+            setTimeout(() => {
+                const geojson = osmToGeoJSON(osmData);
+                const sourceId = `buildings-${id.toLowerCase()}`;
+                
+                map.addSource(sourceId, { type: 'geojson', data: geojson });
+                
+                map.addLayer({
+                    'id': `layer-${sourceId}`,
+                    'type': 'fill-extrusion',
+                    'source': sourceId,
+                    'paint': {
+                        'fill-extrusion-color': '#2a2a2a',
+                        'fill-extrusion-height': ['get', 'height'],
+                        'fill-extrusion-base': 0,
+                        'fill-extrusion-opacity': 0.0
+                    }
+                });
+                
+                // Fade In Effect (Premium Feel)
+                let opacity = 0.0;
+                const fadeInterval = setInterval(() => {
+                    opacity += 0.1;
+                    if (opacity >= 0.9) {
+                        opacity = 0.9;
+                        clearInterval(fadeInterval);
+                    }
+                    map.setPaintProperty(`layer-${sourceId}`, 'fill-extrusion-opacity', opacity);
+                }, 50);
+                
+                // Update Sector UI (Auto-Hide)
+                const feature = SECTOR_GEOJSON.features.find(f => f.properties.id === id);
+                if (feature) {
+                    feature.properties.status = 'loaded';
+                    map.getSource('sectors').setData(SECTOR_GEOJSON);
+                }
+                
+                logToConsole(`✅ Sector ${id} Rendered: ${geojson.features.length} buildings.`);
+            }, 50);
+        }
+
+        async function fetchViennaBuildings() {
+            // Disabled Auto-Load for Performance
+            // We just init the picker instead
+            initSectorPicker();
+            
+            // Still clear demo buildings to avoid confusion
+            if (map.getSource('demo-buildings')) {
+                 map.getSource('demo-buildings').setData({type: 'FeatureCollection', features: []});
+            }
+        }
+
+        // Convert OSM Overpass JSON to GeoJSON
+        function osmToGeoJSON(osmData) {
+            const nodes = {};
+            const features = [];
+            
+            // Index all nodes
+            for (const element of osmData.elements) {
+                if (element.type === 'node') {
+                    nodes[element.id] = [element.lon, element.lat];
+                }
+            }
+            
+            // Process ways (standard buildings)
+            for (const element of osmData.elements) {
+                if (element.type === 'way' && element.nodes && element.tags?.building) {
+                    const coordinates = element.nodes
+                        .map(nodeId => nodes[nodeId])
+                        .filter(coord => coord);
+                    
+                    if (coordinates.length >= 3) {
+                        // Ensure closed polygon
+                        if (coordinates[0] !== coordinates[coordinates.length-1]) {
+                             coordinates.push(coordinates[0]);
+                        }
+                        
+                        // Parse height from OSM tags
+                        let height = null;
+                        if (element.tags.height) {
+                            height = parseFloat(element.tags.height.replace('m', ''));
+                        } else if (element.tags['building:levels']) {
+                            height = parseInt(element.tags['building:levels']) * 3.5;
+                        } else if (element.tags['building:height']) {
+                            height = parseFloat(element.tags['building:height'].replace('m', ''));
+                        }
+                        
+                        // Assign default height based on building type
+                        if (!height) {
+                            const buildingType = element.tags.building;
+                            const typeHeights = {
+                                'apartments': 18,
+                                'commercial': 15,
+                                'office': 25,
+                                'retail': 8,
+                                'hotel': 30,
+                                'industrial': 12,
+                                'residential': 10,
+                                'house': 8,
+                                'yes': 12
+                            };
+                            height = typeHeights[buildingType] || 12;
+                        }
+                        
+                        features.push({
+                            type: 'Feature',
+                            properties: {
+                                height: height,
+                                levels: element.tags['building:levels'] || null,
+                                name: element.tags.name || null,
+                                type: 'existing',
+                                building: element.tags.building,
+                                osmId: element.id
+                            },
+                            geometry: {
+                                type: 'Polygon',
+                                coordinates: [coordinates]
+                            }
+                        });
+                    }
+                }
+            }
+            
+            return { type: 'FeatureCollection', features };
+        }
+
+        function generateDemoBuildings() {
+            // Fallback: Generate random buildings around Vienna center
+            const features = [];
+            const baseCoords = SOFIA_CENTER;
+            
+            for (let i = 0; i < 50; i++) {
+                const offsetLng = (Math.random() - 0.5) * 0.02;
+                const offsetLat = (Math.random() - 0.5) * 0.015;
+                const size = 0.0002 + Math.random() * 0.0004;
+                const height = 10 + Math.random() * 60;
+                
+                const lng = baseCoords[0] + offsetLng;
+                const lat = baseCoords[1] + offsetLat;
+                
+                features.push({
+                    type: 'Feature',
+                    properties: {
+                        height: height,
+                        type: 'existing',
+                        name: `Building ${i + 1}`
+                    },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [lng - size, lat - size],
+                            [lng + size, lat - size],
+                            [lng + size, lat + size],
+                            [lng - size, lat + size],
+                            [lng - size, lat - size]
+                        ]]
+                    }
+                });
+            }
+            
+            return features;
+        }
+
+        function osmWaterToGeoJSON(osmData) {
+            const nodes = {};
+            const features = [];
+            
+            for (const element of osmData.elements) {
+                if (element.type === 'node') nodes[element.id] = [element.lon, element.lat];
+            }
+            
+            for (const element of osmData.elements) {
+                if (element.type === 'way' && element.nodes) {
+                    const coordinates = element.nodes.map(id => nodes[id]).filter(c => c);
+                    if (coordinates.length > 1) {
+                         features.push({
+                             type: 'Feature',
+                             properties: { name: element.tags?.name || 'Waterway' },
+                             geometry: { type: 'LineString', coordinates }
+                         });
+                    }
+                }
+            }
+            return { type: 'FeatureCollection', features };
+        }
+
+        function addFloodZoneLayer() {
+            if (typeof VIENNA_WATER === 'undefined') {
+                console.warn('Real water data missing, using simulation.');
+                 // Keep old simulation if needed, or just return
+                 return; 
+            }
+
+            const waterGeoJSON = osmWaterToGeoJSON(VIENNA_WATER);
+            
+            map.addSource('flood-zone-real', {
+                type: 'geojson',
+                data: waterGeoJSON
+            });
+
+            // 1. The River Channel (Blue Line)
+            map.addLayer({
+                id: 'flood-zone-river',
+                type: 'line',
+                source: 'flood-zone-real',
+                layout: { 'line-join': 'round', 'line-cap': 'round', visibility: 'none' },
+                paint: {
+                    'line-color': '#00f0ff',
+                    'line-width': 3,
+                    'line-opacity': 0.8
+                }
+            });
+
+            // 2. The Flood Risk Buffer (Wide Transparent Line)
+            // Simulating HQ100 by expecting 300m buffer
+            map.addLayer({
+                id: 'flood-zone-risk',
+                type: 'line',
+                source: 'flood-zone-real',
+                layout: { 'line-join': 'round', 'line-cap': 'round', visibility: 'none' },
+                paint: {
+                    'line-color': '#00f0ff',
+                    'line-width': 100, // Wide line in pixels (approx 100-200m at zoom 14)
+                    'line-opacity': 0.15,
+                    'line-blur': 20
+                }
+            });
+            
+            // Update toggle to point to new layers
+            document.getElementById('btn-toggle-flood').addEventListener('click', () => {
+                 const visible = map.getLayoutProperty('flood-zone-river', 'visibility') === 'visible';
+                 const next = visible ? 'none' : 'visible';
+                 map.setLayoutProperty('flood-zone-river', 'visibility', next);
+                 map.setLayoutProperty('flood-zone-risk', 'visibility', next);
+                 document.getElementById('btn-toggle-flood').style.opacity = (next === 'visible') ? 1 : 0.5;
+            });
+            
+            // Clean up old listener (this might duplicate if not careful, but initMap runs once)
+            // The old generic listener is replaced by specific logic here or above
+        }
+
+        function addSeismicZoneLayer() {
+            // Simulated seismic risk zone for Vienna
+            map.addSource('seismic-zone', {
+                type: 'geojson',
+                data: {
+                    type: 'Feature',
+                    properties: { name: 'Seismic Zone III', pga: 0.20 },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [[
+                            [16.30, 48.15],
+                            [16.50, 48.15],
+                            [16.50, 48.28],
+                            [16.30, 48.28],
+                            [16.30, 48.15]
+                        ]]
+                    }
+                }
+            });
+
+            map.addLayer({
+                id: 'seismic-zone-fill',
+                type: 'fill',
+                source: 'seismic-zone',
+                paint: {
+                    'fill-color': '#ff3e3e',
+                    'fill-opacity': 0.1
+                },
+                layout: { visibility: 'none' }
+            });
+
+            map.addLayer({
+                id: 'seismic-zone-line',
+                type: 'line',
+                source: 'seismic-zone',
+                paint: {
+                    'line-color': '#ff3e3e',
+                    'line-width': 2,
+                    'line-dasharray': [5, 3]
+                },
+                layout: { visibility: 'none' }
+            });
+        }
+
+        function toggle3DBuildings() {
+            show3DBuildings = !show3DBuildings;
+            
+            // Toggle Sector Picker
+            if (map.getLayer('sectors-fill')) {
+                const visibility = show3DBuildings ? 'visible' : 'none';
+                map.setLayoutProperty('sectors-fill', 'visibility', visibility);
+                map.setLayoutProperty('sectors-line', 'visibility', visibility);
+            }
+
+            // Toggle Loaded Sectors
+            ['nw', 'ne', 'sw', 'se'].forEach(id => {
+                 if (map.getLayer(`layer-buildings-${id}`)) {
+                     map.setLayoutProperty(`layer-buildings-${id}`, 'visibility', show3DBuildings ? 'visible' : 'none');
+                 }
+            });
+
+            // Also toggle demo if active
+            if (map.getLayer('layer-demo-buildings')) {
+                map.setLayoutProperty('layer-demo-buildings', 'visibility', show3DBuildings ? 'visible' : 'none');
+            }
+            
+            document.getElementById('btn-toggle-3d').style.opacity = show3DBuildings ? 1 : 0.5;
+        }
+
+        function toggleFloodZone() {
+            showFloodZone = !showFloodZone;
+            map.setLayoutProperty('flood-zone-fill', 'visibility', showFloodZone ? 'visible' : 'none');
+            map.setLayoutProperty('flood-zone-line', 'visibility', showFloodZone ? 'visible' : 'none');
+            document.getElementById('btn-toggle-flood').style.opacity = showFloodZone ? 1 : 0.5;
+        }
+
+        function toggleSeismicZone() {
+            showSeismicZone = !showSeismicZone;
+            map.setLayoutProperty('seismic-zone-fill', 'visibility', showSeismicZone ? 'visible' : 'none');
+            map.setLayoutProperty('seismic-zone-line', 'visibility', showSeismicZone ? 'visible' : 'none');
+            document.getElementById('btn-toggle-seismic').style.opacity = showSeismicZone ? 1 : 0.5;
+        }
+
+        function handleMapClick(e) {
+            // Only place if we're not dragging
+            if (e.originalEvent && e.originalEvent.defaultPrevented) return;
+            
+            // Do not place marker if user is selecting a sector
+            if (isHoveringInteractiveLayer) return;
+            
+            const { lng, lat } = e.lngLat;
+            placeMarker(lng, lat);
+        }
+
+        function placeMarker(lng, lat) {
+             // Remove existing marker
+            if (buildingMarker) {
+                buildingMarker.remove();
+            }
+            
+            // Add new marker
+            const el = document.createElement('div');
+            el.className = 'building-site-marker';
+            el.innerHTML = `
+                <div style="width: 24px; height: 24px; background: rgba(0, 255, 65, 0.2); border-radius: 50%; border: 3px solid #00ff41; box-shadow: 0 0 20px #00ff41; cursor: move;">
+                    <div style="width: 6px; height: 6px; background: white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"></div>
+                </div>
+            `;
+            
+            buildingMarker = new maplibregl.Marker({ 
+                element: el,
+                draggable: true 
+            })
+                .setLngLat([lng, lat])
+                .addTo(map);
+            
+            // Marker Events
+            buildingMarker.on('dragstart', () => {
+                document.getElementById('site-status-hud').style.display = 'flex';
+                el.style.cursor = 'grabbing';
+            });
+            
+            buildingMarker.on('drag', onMarkerDrag);
+            
+            buildingMarker.on('dragend', onMarkerDragEnd);
+            
+            // Initial update
+            updateBuildingLocation(lng, lat);
+            scanSite(lng, lat);
+        }
+
+        let lastScanTime = 0;
+        function onMarkerDrag() {
+            const now = Date.now();
+            if (now - lastScanTime < 50) return; // Throttle scans to 20fps
+            lastScanTime = now;
+            
+            const lngLat = buildingMarker.getLngLat();
+            scanSite(lngLat.lng, lngLat.lat);
+        }
+
+        function onMarkerDragEnd() {
+            const lngLat = buildingMarker.getLngLat();
+            updateBuildingLocation(lngLat.lng, lngLat.lat);
+            
+            // Hide HUD after small delay if safe
+            setTimeout(() => {
+                const status = document.getElementById('site-status-text').textContent;
+                if (status === 'SITE SECURE') {
+                    document.getElementById('site-status-hud').style.display = 'none';
+                }
+            }, 2000);
+        }
+        
+        function updateBuildingLocation(lng, lat) {
+             try {
+                const data = JSON.parse(els.buildingInput.value || '{}');
+                data.latitude = lat;
+                data.longitude = lng;
+                els.buildingInput.value = JSON.stringify(data, null, 4);
+                logToConsole(`📍 Building location set: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`);
+            } catch (e) {
+                logToConsole(`📍 Location: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`);
+            }
+        }
+
+        function scanSite(lng, lat) {
+            const hud = document.getElementById('site-status-hud');
+            const indicator = document.getElementById('site-status-indicator');
+            const text = document.getElementById('site-status-text');
+            const markerEl = buildingMarker.getElement().firstElementChild;
+            
+            const point = map.project([lng, lat]);
+            
+            // 1. Check Collision (Buildings)
+            // Query a small box around the point (5x5 pixels)
+            const features = map.queryRenderedFeatures(
+                [[point.x - 5, point.y - 5], [point.x + 5, point.y + 5]],
+                { layers: ['3d-buildings', 'layer-buildings-nw', 'layer-buildings-ne', 'layer-buildings-sw', 'layer-buildings-se'] }
+            );
+            
+            let status = 'SAFE';
+            
+            if (features.length > 0) {
+                status = 'COLLISION';
+            } else {
+                // 2. Check Flood Risk
+                // If the flood layer is active, check simpler geometric containment
+                // Since queryRenderedFeatures works on visible layers, we can use it on 'flood-zone-risk'
+                const floodFeatures = map.queryRenderedFeatures(point, { layers: ['flood-zone-risk', 'flood-zone-fill'] });
+                if (floodFeatures.length > 0) {
+                    status = 'FLOOD';
+                }
+            }
+            
+            // Update UI
+            hud.style.display = 'flex';
+            
+            if (status === 'COLLISION') {
+                indicator.style.background = '#ff0000';
+                indicator.style.boxShadow = '0 0 10px #ff0000';
+                text.textContent = 'CRITICAL: BUILDING COLLISION';
+                text.style.color = '#ff4444';
+                markerEl.style.borderColor = '#ff0000';
+                markerEl.style.boxShadow = '0 0 30px #ff0000';
+            } else if (status === 'FLOOD') {
+                indicator.style.background = '#00f0ff';
+                indicator.style.boxShadow = '0 0 10px #00f0ff';
+                text.textContent = 'WARNING: FLOOD ZONE';
+                text.style.color = '#00f0ff';
+                markerEl.style.borderColor = '#00f0ff';
+                markerEl.style.boxShadow = '0 0 30px #00f0ff';
+            } else {
+                indicator.style.background = '#00ff41';
+                indicator.style.boxShadow = 'none';
+                text.textContent = 'SITE SECURE';
+                text.style.color = 'white';
+                markerEl.style.borderColor = '#00ff41';
+                markerEl.style.boxShadow = '0 0 20px #00ff41';
+            }
+        }
+
+        // Add proposed building to map
+        function addProposedBuilding(building) {
+            if (!map || !building.latitude || !building.longitude) return;
+            
+            const size = Math.sqrt(building.footprint_area || 1000) / 111000; // Rough conversion to degrees
+            const lng = building.longitude;
+            const lat = building.latitude;
+            const height = building.height || 30;
+            
+            const proposedFeature = {
+                type: 'Feature',
+                properties: {
+                    height: height,
+                    type: 'proposed',
+                    name: building.name || 'Proposed Building'
+                },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                        [lng - size, lat - size],
+                        [lng + size, lat - size],
+                        [lng + size, lat + size],
+                        [lng - size, lat + size],
+                        [lng - size, lat - size]
+                    ]]
+                }
+            };
+            
+            // Update or add proposed building
+            const source = map.getSource('demo-buildings');
+            if (source) {
+                const data = source._data;
+                // Remove any existing proposed buildings
+                data.features = data.features.filter(f => f.properties.type !== 'proposed');
+                data.features.push(proposedFeature);
+                source.setData(data);
+                
+                // Fly to building
+                map.flyTo({
+                    center: [lng, lat],
+                    zoom: 17,
+                    pitch: 60
+                });
+            }
+        }
+
+        // Initialize map when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMap);
+        } else {
+            initMap();
+        }
+    </script>
+
+    <style>
+        /* Map Control Buttons */
+        .map-control-btn {
+            width: 36px;
+            height: 36px;
+            background: rgba(10, 10, 10, 0.9);
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .map-control-btn:hover {
+            background: rgba(30, 30, 30, 0.95);
+            border-color: #00f0ff;
+        }
+        .maplibregl-popup-content {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .maplibregl-popup-close-button {
+            color: white;
+        }
+    </style>
+</body>
+</html>

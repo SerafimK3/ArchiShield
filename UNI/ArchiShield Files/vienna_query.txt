@@ -1,0 +1,9 @@
+data=[out:json][timeout:60];
+(
+  way["building"]["height"](48.195,16.35,48.22,16.40);
+  way["building"]["building:levels"](48.195,16.35,48.22,16.40);
+  way["building"~"apartments|commercial|office|retail|hotel"](48.195,16.35,48.22,16.40);
+);
+out body;
+>;
+out skel qt;
