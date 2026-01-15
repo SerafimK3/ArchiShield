@@ -5,7 +5,7 @@
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent';
-const PIPEDREAM_WEBHOOK_URL = 'https://hook.eu1.make.com/r26c64mf26prw4wqxn3ldnbyne3rwhwx';
+const PIPEDREAM_WEBHOOK_URL = import.meta.env.VITE_PIPEDREAM_WEBHOOK_URL;
 
 /**
  * Log chat interaction to Pipedream -> Google Sheets
