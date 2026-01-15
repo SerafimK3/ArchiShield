@@ -1,0 +1,372 @@
+/**
+ * TelemetryPanel - Premium Dashboard with Real Audit Data
+ * Displays: Gauge, 4 constraint cards with real data, audit scores chart
+ */
+import React, { useEffect, useState } from 'react';
+import './TelemetryPanel.css';
+
+export function TelemetryPanel({ results, loading, phase }) {
+    const [animatedFeasibility, setAnimatedFeasibility] = useState(0);
+    
+    useEffect(() => {
+        if (results?.feasibility) {
+            const timer = setTimeout(() => {
+                setAnimatedFeasibility(results.feasibility);
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [results?.feasibility]);
+
+    // Loading state - premium animated version
+    if (loading) {
+        return (
+            <div className="telemetry-panel">
+                <div className="panel-header">
+                    <span className="breadcrumb">Home › Vienna › <strong>Analyzing...</strong></span>
+                </div>
+                
+                <div className="loading-hero">
+                    <div className="loading-ring">
+                        <svg viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" className="ring-bg" />
+                            <circle cx="50" cy="50" r="40" className="ring-progress" />
+                        </svg>
+                        <div className="loading-icon">🔍</div>
+                    </div>
+                    <h3 className="loading-title">Running Audit</h3>
+                    <p className="loading-phase">{phase || 'Initializing...'}</p>
+                </div>
+
+                <div className="loading-steps">
+                    {['Zoning', 'Heritage', 'Subsurface', 'Climate 2036', 'Structural Safety'].map((step, idx) => (
+                        <div 
+                            key={step} 
+                            className={`loading-step ${phase === step ? 'active' : ''} ${
+                                ['Zoning', 'Heritage', 'Subsurface', 'Climate 2036', 'Structural Safety'].indexOf(phase) > idx ? 'complete' : ''
+                            }`}
+                        >
+                            <div className="step-indicator">
+                                {['Zoning', 'Heritage', 'Subsurface', 'Climate 2036', 'Structural Safety'].indexOf(phase) > idx ? '✓' : (idx + 1)}
+                            </div>
+                            <span className="step-label">{step}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // Empty state
+    if (!results || !results.success) {
+        return (
+            <div className="telemetry-panel">
+                <div className="panel-header">
+                    <span className="breadcrumb">Home › Vienna › <strong>Permit Feasibility Analysis</strong></span>
+                </div>
+                <div className="empty-state">
+                    <div className="empty-icon">📍</div>
+                    <h3>Select a Location</h3>
+                    <p>Click on the map to analyze permit feasibility</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Extract data from results
+    const { feasibility, district, audits, building } = results;
+    const zoning = audits?.zoning;
+    const heritage = audits?.heritage;
+    const subsurface = audits?.subsurface;
+    const climate = audits?.climate;
+    const seismic = audits?.seismic;
+    const wind = audits?.wind;
+
+    // Helper to get severity class
+    const getSeverityClass = (score) => {
+        if (score >= 80) return 'green';
+        if (score >= 60) return 'orange';
+        return 'red';
+    };
+
+    // Calculate height percentage for bar
+    const maxHeight = zoning?.bauklasse?.maxHeight || 35;
+    const proposedHeight = building?.height || 20;
+    const heightPercent = Math.min((proposedHeight / maxHeight) * 100, 100);
+
+    return (
+        <div className="telemetry-panel">
+            {/* Header with breadcrumb */}
+            <div className="panel-header">
+                <span className="breadcrumb">
+                    Home › Vienna › {district ? `District ${district} ›` : ''} <strong>Permit Feasibility Analysis</strong>
+                </span>
+            </div>
+
+            {/* Permit Feasibility Gauge */}
+            <div className="gauge-section">
+                <h3 className="gauge-title">Permit Feasibility</h3>
+                <div className="gauge-container">
+                    <svg viewBox="0 0 200 110" className="gauge-svg">
+                        <defs>
+                            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#00d4ff" />
+                                <stop offset="50%" stopColor="#00ff88" />
+                                <stop offset="100%" stopColor="#ffcc00" />
+                            </linearGradient>
+                        </defs>
+                        {/* Background arc */}
+                        <path
+                            d="M 20 100 A 80 80 0 0 1 180 100"
+                            fill="none"
+                            stroke="#1a2035"
+                            strokeWidth="12"
+                            strokeLinecap="round"
+                        />
+                        {/* Progress arc */}
+                        <path
+                            d="M 20 100 A 80 80 0 0 1 180 100"
+                            fill="none"
+                            stroke="url(#gaugeGrad)"
+                            strokeWidth="12"
+                            strokeLinecap="round"
+                            strokeDasharray="251.2"
+                            strokeDashoffset={251.2 * (1 - animatedFeasibility / 100)}
+                            className="gauge-progress"
+                        />
+                    </svg>
+                    <div className="gauge-center">
+                        <span className="gauge-value">{feasibility}%</span>
+                        <span className="gauge-label">
+                            {feasibility >= 80 ? 'High Approval Probability' : 
+                             feasibility >= 60 ? 'Moderate - Review Required' : 
+                             'Low - Significant Issues'}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Active Constraints - 2x2 Grid with REAL DATA */}
+            <div className="constraints-section">
+                <div className="section-head">
+                    <h3>Active Constraints</h3>
+                    <span className="constraint-count">{results.constraints?.length || 0} issues</span>
+                </div>
+                <div className="constraints-grid">
+                    
+                    {/* Card 1: Height Restriction (Zoning) */}
+                    <div className="constraint-card">
+                        <div className="card-top">
+                            <span className="card-icon">📏</span>
+                            <span className="card-title">Height Restriction</span>
+                        </div>
+                        <div className={`card-value ${proposedHeight <= maxHeight ? 'green' : 'red'}`}>
+                            {maxHeight}m Max
+                        </div>
+                        <div className="card-sublabel">
+                            Bauklasse {zoning?.bauklasse?.class || 'III'} • Proposed: {proposedHeight}m
+                        </div>
+                        <div className="height-bar-container">
+                            <div 
+                                className={`height-bar-fill ${proposedHeight <= maxHeight ? 'safe' : 'exceeded'}`}
+                                style={{ width: `${heightPercent}%` }}
+                            />
+                            <div className="height-bar-limit" style={{ left: '100%' }} />
+                        </div>
+                        <div className="bar-labels">
+                            <span>0m</span>
+                            <span>{maxHeight}m limit</span>
+                        </div>
+                    </div>
+
+                    {/* Card 2: Heritage Impact */}
+                    <div className="constraint-card">
+                        <div className="card-top">
+                            <span className="card-icon">🏛️</span>
+                            <span className="card-title">Heritage Zone</span>
+                        </div>
+                        <div className={`card-value ${heritage?.unescoZone ? 'orange' : 'green'}`}>
+                            {heritage?.unescoZone ? 'UNESCO Buffer' : 'Standard Zone'}
+                        </div>
+                        {heritage?.landmarks && heritage.landmarks.length > 0 ? (
+                            <>
+                                <div className="card-sublabel">
+                                    {heritage.landmarks[0].distance}m from {heritage.landmarks[0].name}
+                                </div>
+                                <div className="landmark-indicator">
+                                    <span className="landmark-dot" />
+                                    <span>Landmark proximity review required</span>
+                                </div>
+                            </>
+                        ) : heritage?.unescoZone ? (
+                            <>
+                                <div className="card-sublabel">Height limit: {heritage.heightLimit || 43}m</div>
+                                <div className="landmark-indicator warning">
+                                    <span className="landmark-dot" />
+                                    <span>MA 19 approval required</span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="card-sublabel">No heritage restrictions</div>
+                        )}
+                    </div>
+
+                    {/* Card 3: U-Bahn Proximity (Subsurface) */}
+                    <div className="constraint-card">
+                        <div className="card-top">
+                            <span className="card-icon">🚇</span>
+                            <span className="card-title">U-Bahn Proximity</span>
+                        </div>
+                        {subsurface?.nearestLine ? (
+                            <>
+                                <div className={`card-value ${
+                                    subsurface.nearestDistance < 50 ? 'red' : 
+                                    subsurface.nearestDistance < 100 ? 'orange' : 'cyan'
+                                }`}>
+                                    {subsurface.nearestDistance}m to {subsurface.nearestLine.name}
+                                </div>
+                                <div className="card-sublabel">
+                                    Near {subsurface.nearestLine.station} • Tunnel depth: {subsurface.nearestLine.tunnelDepth}m
+                                </div>
+                                <div className="proximity-bar">
+                                    <div 
+                                        className={`proximity-fill ${
+                                            subsurface.nearestDistance < 50 ? 'critical' : 
+                                            subsurface.nearestDistance < 100 ? 'warning' : 'safe'
+                                        }`}
+                                        style={{ width: `${Math.min(100, (150 - subsurface.nearestDistance) / 150 * 100)}%` }}
+                                    />
+                                </div>
+                                <div className="bar-labels">
+                                    <span>Critical</span>
+                                    <span>Clear</span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="card-value green">No U-Bahn nearby</div>
+                        )}
+                    </div>
+
+                    {/* Card 4: Climate 2036 Mandates */}
+                    <div className="constraint-card">
+                        <div className="card-top">
+                            <span className="card-icon">🌿</span>
+                            <span className="card-title">Climate 2036</span>
+                        </div>
+                        <div className={`card-value ${
+                            climate?.mandates?.length > 2 ? 'orange' : 'green'
+                        }`}>
+                            {climate?.mandates?.length || 0} Mandates
+                        </div>
+                        {climate?.uhiIntensity && (
+                            <div className="card-sublabel">
+                                UHI Zone: {climate.uhiIntensity.category} (+{climate.uhiIntensity.intensity}°C)
+                            </div>
+                        )}
+                        <div className="mandates-list">
+                            {climate?.mandates?.slice(0, 3).map((mandate, idx) => (
+                                <div key={idx} className="mandate-item">
+                                    <span className="mandate-icon">
+                                        {mandate.type === 'GREEN_ROOF' ? '🌱' : 
+                                         mandate.type === 'SOLAR_INSTALLATION' ? '☀️' : 
+                                         mandate.type === 'WATER_RETENTION' ? '💧' : 
+                                         mandate.type === 'FACADE_GREENING' ? '🌿' : '📋'}
+                                    </span>
+                                    <span className="mandate-text">
+                                        {mandate.type.replace(/_/g, ' ').toLowerCase()}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Card 5: Structural Safety */}
+                    <div className="constraint-card structural-card">
+                        <div className="card-top">
+                            <span className="card-icon">🏗️</span>
+                            <span className="card-title">Structural Safety</span>
+                        </div>
+                        <div className={`card-value ${getSeverityClass(Math.round(((seismic?.score || 0) + (wind?.score || 0)) / 2))}`}>
+                            {Math.round(((seismic?.score || 0) + (wind?.score || 0)) / 2)}% Resilience
+                        </div>
+                        <div className="card-sublabel">
+                            {wind?.data?.neighborCount} Neighbors • {seismic?.data?.zone} Zone
+                        </div>
+                        <div className="mini-bars-container">
+                            <div className="mini-bar">
+                                <div 
+                                    className={`mini-fill ${getSeverityClass(100 - (seismic?.data?.stressLevel || 0))}`}
+                                    style={{ width: `${seismic?.data?.stressLevel || 0}%` }}
+                                />
+                            </div>
+                            <div className="mini-bar">
+                                <div 
+                                    className={`mini-fill ${getSeverityClass(100 - (wind?.data?.stressLevel || 0))}`}
+                                    style={{ width: `${wind?.data?.stressLevel || 0}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            {/* Audit Scores Section */}
+            <div className="metrics-section">
+                <h3>Audit Breakdown</h3>
+                
+                <div className="audit-scores">
+                    {[
+                        { name: 'Zoning', score: zoning?.score || 0, icon: '🏛️', color: '#00d4ff' },
+                        { name: 'Heritage', score: heritage?.score || 0, icon: '🏛️', color: '#00ff88' },
+                        { name: 'Subsurface', score: subsurface?.score || 0, icon: '🚇', color: '#ffaa00' },
+                        { name: 'Climate', score: climate?.score || 0, icon: '🌡️', color: '#ff6b7a' },
+                        { name: 'Structural', score: Math.round(((seismic?.score || 0) + (wind?.score || 0)) / 2), icon: '🏗️', color: '#8b5cf6' }
+                    ].map((audit, idx) => (
+                        <div key={idx} className="audit-score-row">
+                            <div className="audit-info">
+                                <span className="audit-icon">{audit.icon}</span>
+                                <span className="audit-name">{audit.name}</span>
+                            </div>
+                            <div className="audit-bar-container">
+                                <div 
+                                    className="audit-bar-fill"
+                                    style={{ 
+                                        width: `${audit.score}%`,
+                                        background: audit.color
+                                    }}
+                                />
+                            </div>
+                            <span className={`audit-score ${getSeverityClass(audit.score)}`}>
+                                {audit.score}%
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Key Risk Summary */}
+            {results.keyRisk && results.keyRisk !== 'No critical constraints' && (
+                <div className="risk-summary">
+                    <span className="risk-icon">⚠️</span>
+                    <span className="risk-text">{results.keyRisk}</span>
+                </div>
+            )}
+
+            {/* Bottom Status Bar */}
+            <div className="status-bar">
+                <div className="status-left">
+                    <span className="status-label">System Status</span>
+                    <span className="status-online">
+                        <span className="dot" />
+                        ONLINE
+                    </span>
+                </div>
+                <span className="refresh-text">
+                    {results.timestamp ? new Date(results.timestamp).toLocaleTimeString() : 'Live'}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+export default TelemetryPanel;

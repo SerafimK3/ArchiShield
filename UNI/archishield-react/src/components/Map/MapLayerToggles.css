@@ -1,0 +1,161 @@
+/**
+ * MapLayerToggles - Floating Layer Controls Styling
+ * ==================================================
+ * Glassmorphism cards positioned on left side of map
+ */
+
+.map-layer-toggles {
+    position: absolute;
+    bottom: 80px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 100;
+    max-width: 280px;
+}
+
+.layer-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(10, 15, 26, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.25s ease;
+    animation: slideInLeft 0.3s ease-out backwards;
+}
+
+.layer-toggle:nth-child(1) { animation-delay: 0.1s; }
+.layer-toggle:nth-child(2) { animation-delay: 0.2s; }
+.layer-toggle:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.layer-toggle:hover {
+    background: rgba(26, 32, 53, 0.9);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(4px);
+}
+
+.layer-toggle.active {
+    border-color: var(--layer-color, #00d4ff);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+}
+
+.layer-toggle.active .toggle-dot {
+    background: var(--layer-color, #00d4ff);
+    box-shadow: 0 0 8px var(--layer-color, #00d4ff);
+}
+
+/* Toggle Indicator (Radio-like) */
+.toggle-indicator {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s ease;
+}
+
+.layer-toggle.active .toggle-indicator {
+    border-color: var(--layer-color, #00d4ff);
+}
+
+.toggle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+/* Toggle Content */
+.toggle-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.toggle-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.toggle-icon {
+    font-size: 12px;
+}
+
+.toggle-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.toggle-description {
+    font-size: 10px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+/* Menu Button */
+.toggle-menu {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.layer-toggle:hover .toggle-menu {
+    opacity: 1;
+}
+
+.toggle-menu:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .map-layer-toggles {
+        max-width: 240px;
+        bottom: 100px;
+    }
+    
+    .toggle-description {
+        display: none;
+    }
+}

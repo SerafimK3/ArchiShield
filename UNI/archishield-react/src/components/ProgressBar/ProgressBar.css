@@ -1,0 +1,37 @@
+.progress-container {
+    background: #1a1a2e;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #00ff41;
+    margin-bottom: 20px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.progress-phase {
+    color: #fff;
+    font-weight: 600;
+}
+
+.progress-percent {
+    color: #00ff41;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.progress-track {
+    height: 8px;
+    background: #0a0a1a;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff41, #00ccff);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}

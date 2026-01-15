@@ -1,0 +1,240 @@
+/* Map Component Styles */
+.map-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+.map-container {
+    width: 100%;
+    height: 100%;
+}
+
+.map-coords {
+    position: absolute;
+    bottom: 40px;
+    left: 10px;
+    background: rgba(10, 10, 15, 0.9);
+    color: #00ff41;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    border: 1px solid rgba(0, 255, 65, 0.3);
+}
+
+.map-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(10, 10, 15, 0.8);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* 3D Toggle Button */
+.map-toggle-3d {
+    position: absolute;
+    top: 120px;
+    right: 10px;
+    background: rgba(10, 10, 15, 0.9);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.map-toggle-3d:hover {
+    background: rgba(20, 20, 30, 0.95);
+    border-color: rgba(0, 255, 65, 0.4);
+}
+
+.map-toggle-3d.active {
+    background: rgba(0, 255, 65, 0.15);
+    color: #00ff41;
+    border-color: #00ff41;
+}
+
+/* Waterways Toggle Button */
+.map-toggle-water {
+    position: absolute;
+    top: 170px;
+    right: 10px;
+    background: rgba(10, 10, 15, 0.9);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.map-toggle-water:hover {
+    background: rgba(20, 20, 30, 0.95);
+    border-color: rgba(0, 212, 255, 0.4);
+}
+
+.map-toggle-water.active {
+    background: rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+    border-color: #00d4ff;
+}
+
+/* Geology Toggle Button */
+.map-toggle-geo {
+    position: absolute;
+    top: 220px;
+    right: 10px;
+    background: rgba(10, 10, 15, 0.9);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.map-toggle-geo:hover {
+    background: rgba(20, 20, 30, 0.95);
+    border-color: rgba(255, 170, 0, 0.4);
+}
+
+.map-toggle-geo.active {
+    background: rgba(255, 170, 0, 0.15);
+    color: #ffaa00;
+    border-color: #ffaa00;
+    box-shadow: 0 0 15px rgba(255, 170, 0, 0.2);
+}
+
+/* Building Tooltip */
+.map-building-tooltip {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(10, 10, 15, 0.95);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 255, 65, 0.4);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 20;
+    min-width: 150px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.map-building-tooltip strong {
+    color: #00ff41;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.map-building-tooltip span {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Make map controls blend with theme */
+.maplibregl-ctrl-group {
+    background: rgba(10, 10, 15, 0.9) !important;
+    border: 1px solid rgba(0, 255, 65, 0.2) !important;
+    border-radius: 6px !important;
+}
+
+.maplibregl-ctrl-group button {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1) !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+    background: rgba(0, 255, 65, 0.1) !important;
+}
+
+.maplibregl-ctrl-group button span {
+    filter: invert(1);
+}
+
+/* Ensure marker is visible */
+.maplibregl-marker {
+    z-index: 100 !important;
+}
+
+.maplibregl-marker svg {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+/* Custom Map Marker */
+.custom-map-marker {
+    width: 30px;
+    height: 40px;
+    position: relative;
+    cursor: pointer;
+}
+
+.marker-pin {
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(135deg, #00ff41 0%, #00d4ff 100%);
+    border: 3px solid #fff;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    position: absolute;
+    left: 50%;
+    top: 0;
+    margin-left: -12px;
+    box-shadow: 0 4px 12px rgba(0, 255, 65, 0.5), 0 0 20px rgba(0, 255, 65, 0.3);
+    z-index: 100;
+}
+
+.marker-pin::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.marker-pulse {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 255, 65, 0.3);
+    border-radius: 50%;
+    position: absolute;
+    top: -8px;
+    left: -20px;
+    transform: rotate(45deg);
+    animation: markerPulse 2s ease-out infinite;
+}
+
+@keyframes markerPulse {
+    0% {
+        transform: rotate(45deg) scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: rotate(45deg) scale(2);
+        opacity: 0;
+    }
+}
