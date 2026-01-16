@@ -68,6 +68,43 @@ export const SpatialUtils = {
             if (intersect) inside = !inside;
         }
         return inside;
+    },
+
+    // Get statistics for buildings within a radius
+    getNeighborhoodStats(point, features, radius = 150) {
+        const neighbors = [];
+        const degRadius = radius / 111000;
+
+        for (const feature of features) {
+            let coords = null;
+            if (feature.geometry.type === 'Point') coords = feature.geometry.coordinates;
+            else if (feature.geometry.type === 'Polygon') coords = feature.geometry.coordinates[0][0];
+            
+            if (coords) {
+                if (Math.abs(coords[1] - point.lat) > degRadius) continue;
+                if (Math.abs(coords[0] - point.lng) > degRadius) continue;
+                
+                const dist = this.getDistance(point.lat, point.lng, coords[1], coords[0]);
+                if (dist <= radius) {
+                    neighbors.push({
+                        height: feature.properties.height || 0,
+                        distance: dist
+                    });
+                }
+            }
+        }
+
+        if (neighbors.length === 0) return { avgHeight: 0, maxHeight: 0, count: 0 };
+
+        const totalHeight = neighbors.reduce((sum, n) => sum + n.height, 0);
+        const maxHeight = Math.max(...neighbors.map(n => n.height));
+        
+        return {
+            avgHeight: Math.round(totalHeight / neighbors.length),
+            maxHeight: Math.round(maxHeight),
+            count: neighbors.length,
+            neighbors: neighbors.sort((a, b) => a.distance - b.distance).slice(0, 10)
+        };
     }
 };
 

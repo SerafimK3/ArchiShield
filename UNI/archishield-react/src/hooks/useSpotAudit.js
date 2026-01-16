@@ -5,6 +5,7 @@
  */
 import { useState, useCallback } from 'react';
 import { ZoningAudit, HeritageAudit, SubsurfaceAudit, Climate2036Audit, SeismicAudit, WindLoadAudit } from '../services/audits';
+import SpatialUtils from '../services/spatial';
 import buildingsData from '../data/vienna_buildings.json';
 
 const AUDIT_PHASES = [
@@ -36,13 +37,17 @@ export function useSpotAudit() {
         setResults(null);
         
         const district = detectDistrict(latitude, longitude);
+        
+        // Find existing building height if select a building explicitly
+        const existingBuilding = buildingParams.id ? buildingsData.features.find(f => f.properties.id === buildingParams.id) : null;
+        
         const building = {
             latitude,
             longitude,
             lat: latitude,
             lng: longitude,
-            height: buildingParams.height || 20,
-            floors: buildingParams.floors || 5,
+            height: buildingParams.height || existingBuilding?.properties?.height || 20,
+            floors: buildingParams.floors || existingBuilding?.properties?.levels || 5,
             footprint: buildingParams.footprint || 200,
             roofArea: buildingParams.roofArea || 200,
             surfaceSeal: buildingParams.surfaceSeal || 70,
@@ -53,7 +58,13 @@ export function useSpotAudit() {
             ...buildingParams
         };
         
-        const context = { district };
+        const neighborhood = SpatialUtils.getNeighborhoodStats(
+            { lat: latitude, lng: longitude },
+            buildingsData.features,
+            150
+        );
+        
+        const context = { district, neighborhood };
         const auditResults = {};
         let allConstraints = [];
         let allMandates = [];

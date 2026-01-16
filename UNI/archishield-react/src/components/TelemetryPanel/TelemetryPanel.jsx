@@ -88,17 +88,28 @@ export function TelemetryPanel({ results, loading, phase }) {
         return 'red';
     };
 
-    // Calculate height percentage for bar
-    const maxHeight = zoning?.bauklasse?.maxHeight || 35;
+    const regulatoryLimit = zoning?.bauklasse?.maxHeight || 16;
+    const contextualLimit = zoning?.contextualLimit || regulatoryLimit;
+    const suggestedBauklasse = zoning?.suggestedBauklasse;
+    const neighborhoodAvg = zoning?.neighborhood?.avgHeight || 0;
     const proposedHeight = building?.height || 20;
-    const heightPercent = Math.min((proposedHeight / maxHeight) * 100, 100);
+    
+    // Scale percentages relative to the contextual limit (which is >= regulatory)
+    const displayMax = Math.max(proposedHeight, contextualLimit, regulatoryLimit);
+    const heightPercent = Math.min((proposedHeight / displayMax) * 100, 100);
+    const regulatoryPercent = Math.min((regulatoryLimit / displayMax) * 100, 100);
+    const neighborPercent = Math.min((neighborhoodAvg / displayMax) * 100, 100);
+
+    const isExceedingRegulatory = proposedHeight > regulatoryLimit;
+    const isExceedingContextual = proposedHeight > contextualLimit;
+    const hasVariancePotential = isExceedingRegulatory && !isExceedingContextual;
 
     return (
         <div className="telemetry-panel">
             {/* Header with breadcrumb */}
             <div className="panel-header">
                 <span className="breadcrumb">
-                    Home › Vienna › {district ? `District ${district} ›` : ''} <strong>Permit Feasibility Analysis</strong>
+                    Home › Vienna › {district ? `District ${district}` : 'Overview'} <strong>Permit Feasibility Analysis</strong>
                 </span>
             </div>
 
@@ -159,22 +170,39 @@ export function TelemetryPanel({ results, loading, phase }) {
                             <span className="card-icon">📏</span>
                             <span className="card-title">Height Restriction</span>
                         </div>
-                        <div className={`card-value ${proposedHeight <= maxHeight ? 'green' : 'red'}`}>
-                            {maxHeight}m Max
+                        <div className={`card-value height-value-row ${!isExceedingRegulatory ? 'green' : hasVariancePotential ? 'orange' : 'red'}`}>
+                            <div className="limit-sequence">
+                                <span>{regulatoryLimit}m</span>
+                                <span className="arrow">→</span>
+                                <span className="context-limit">{contextualLimit}m</span>
+                            </div>
+                            {hasVariancePotential && <span className="variance-tag">CONTEXT BUMP</span>}
                         </div>
                         <div className="card-sublabel">
-                            Bauklasse {zoning?.bauklasse?.class || 'III'} • Proposed: {proposedHeight}m
+                            {hasVariancePotential 
+                                ? `Bauklasse ${suggestedBauklasse?.class} Alignment` 
+                                : isExceedingContextual 
+                                    ? "Exceeds Neighborhood Scale" 
+                                    : `Verified: ${zoning?.bauklasse?.class || 'III'} Zoning`}
                         </div>
                         <div className="height-bar-container">
                             <div 
-                                className={`height-bar-fill ${proposedHeight <= maxHeight ? 'safe' : 'exceeded'}`}
+                                className={`height-bar-fill ${!isExceedingRegulatory ? 'safe' : hasVariancePotential ? 'variance' : 'exceeded'}`}
                                 style={{ width: `${heightPercent}%` }}
                             />
-                            <div className="height-bar-limit" style={{ left: '100%' }} />
+                            {neighborhoodAvg > 0 && (
+                                <div 
+                                    className="neighborhood-avg-marker" 
+                                    style={{ left: `${neighborPercent}%` }}
+                                    title={`Neighborhood Avg: ${neighborhoodAvg}m`}
+                                />
+                            )}
+                            <div className="height-bar-limit regulatory" style={{ left: `${regulatoryPercent}%` }} title={`Regulatory: ${regulatoryLimit}m`} />
+                            <div className="height-bar-limit contextual" style={{ left: '100%' }} />
                         </div>
                         <div className="bar-labels">
                             <span>0m</span>
-                            <span>{maxHeight}m limit</span>
+                            <span className="proposed-label">{proposedHeight}m curr.</span>
                         </div>
                     </div>
 
@@ -292,17 +320,23 @@ export function TelemetryPanel({ results, loading, phase }) {
                             {wind?.data?.neighborCount} Neighbors • {seismic?.data?.zone} Zone
                         </div>
                         <div className="mini-bars-container">
-                            <div className="mini-bar">
-                                <div 
-                                    className={`mini-fill ${getSeverityClass(100 - (seismic?.data?.stressLevel || 0))}`}
-                                    style={{ width: `${seismic?.data?.stressLevel || 0}%` }}
-                                />
+                            <div className="mini-bar-row">
+                                <span className="mini-label">Seismic</span>
+                                <div className="mini-bar">
+                                    <div 
+                                        className={`mini-fill ${getSeverityClass(100 - (seismic?.data?.stressLevel || 0))}`}
+                                        style={{ width: `${seismic?.data?.stressLevel || 0}%` }}
+                                    />
+                                </div>
                             </div>
-                            <div className="mini-bar">
-                                <div 
-                                    className={`mini-fill ${getSeverityClass(100 - (wind?.data?.stressLevel || 0))}`}
-                                    style={{ width: `${wind?.data?.stressLevel || 0}%` }}
-                                />
+                            <div className="mini-bar-row">
+                                <span className="mini-label">Wind</span>
+                                <div className="mini-bar">
+                                    <div 
+                                        className={`mini-fill ${getSeverityClass(100 - (wind?.data?.stressLevel || 0))}`}
+                                        style={{ width: `${wind?.data?.stressLevel || 0}%` }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
