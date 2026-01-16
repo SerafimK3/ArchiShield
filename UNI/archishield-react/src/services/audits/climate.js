@@ -1,7 +1,7 @@
 /**
- * Climate 2036 Audit - Future Climate Compliance
+ * Climate Resilience Audit - Future Climate Compliance
  * 
- * Evaluates building against Vienna's 2036 climate regulations:
+ * Evaluates building against Vienna's climate regulations:
  * - Urban Heat Island (UHI) intensity assessment
  * - Surface seal percentage check (>80% = REJECTED)
  * - HQ100 flood zone for District 2 (Donaukanal)
@@ -39,8 +39,8 @@ const CLIMATE_CODE = {
     waterRetentionRate: 0.05   // m³ per sqm roof for retention
 };
 
-export const Climate2036Audit = {
-    name: 'Climate 2036',
+export const ClimateAudit = {
+    name: 'Climate Resilience',
     icon: '🌡️',
     
     execute(building, context = {}) {
@@ -51,7 +51,8 @@ export const Climate2036Audit = {
             surfaceSeal = 70,     // percent of lot sealed
             hasGreenRoof = false,
             hasSolarPanels = false,
-            groundElevation = 0
+            groundElevation = 0,
+            material = 'CONCRETE' // Material type: CONCRETE or TIMBER
         } = building;
         
         const district = context.district || detectDistrict(latitude, longitude);
@@ -169,6 +170,22 @@ export const Climate2036Audit = {
         }
         
         results.score = Math.max(0, results.score);
+        
+        // 7. Material Carbon Assessment (NEW)
+        // Timber structures get a significant climate bonus due to carbon storage
+        if (material === 'TIMBER') {
+            const carbonStorage = Math.round(footprint * 0.5); // ~0.5 tonnes CO2 per sqm of CLT
+            results.score = Math.min(100, results.score + 15); // Bonus for carbon-negative material
+            results.carbonBenefit = {
+                type: 'CARBON_STORAGE',
+                storage: carbonStorage,
+                description: `CLT structure stores ~${carbonStorage} tonnes CO2`
+            };
+            results.recommendations.push('CLT construction qualifies for Vienna Green Building Incentive');
+        } else {
+            results.carbonBenefit = null;
+        }
+        
         return results;
     }
 };
@@ -198,4 +215,4 @@ function detectDistrict(lat, lng) {
     return null;
 }
 
-export default Climate2036Audit;
+export default ClimateAudit;

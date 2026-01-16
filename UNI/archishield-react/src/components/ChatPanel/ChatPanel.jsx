@@ -1,12 +1,13 @@
 /**
  * ChatPanel - Premium AI Query Interface
- * Vienna Spot-Audit Brain
+ * Vienna Spot-Audit Brain with AI Remediation
  */
 import { useState, useRef, useEffect } from 'react';
 import { queryGemini } from '../../services/gemini';
+import { getRemediationSuggestions } from '../../services/remediation';
 import './ChatPanel.css';
 
-function ChatPanel({ auditContext, onLocationSuggested }) {
+function ChatPanel({ auditContext, auditResults, onApplyFix, onLocationSuggested }) {
     const [messages, setMessages] = useState([
         {
             role: 'assistant',
@@ -16,6 +17,8 @@ function ChatPanel({ auditContext, onLocationSuggested }) {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [remediations, setRemediations] = useState(null);
+    const [isGeneratingFix, setIsGeneratingFix] = useState(false);
     const messagesEndRef = useRef(null);
     
     useEffect(() => {
@@ -53,10 +56,54 @@ function ChatPanel({ auditContext, onLocationSuggested }) {
         }
     };
     
+    // Generate AI remediation suggestions
+    const handleGenerateRemediation = async () => {
+        if (!auditResults || isGeneratingFix) return;
+        
+        setIsGeneratingFix(true);
+        setRemediations(null);
+        
+        try {
+            const suggestions = await getRemediationSuggestions(auditResults);
+            setRemediations(suggestions);
+            
+            // Add a message about remediation
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: `🔧 I've analyzed your building and found ${suggestions.combined.length} remediation strategies. Click "Apply" on any suggestion to update your design.`
+            }]);
+        } catch (error) {
+            console.error('Remediation generation failed:', error);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, I couldn\'t generate remediation suggestions. Please try again.',
+                isError: true
+            }]);
+        } finally {
+            setIsGeneratingFix(false);
+        }
+    };
+    
+    // Apply a remediation action
+    const handleApplyRemediation = (remediation) => {
+        if (remediation.action && onApplyFix) {
+            onApplyFix(remediation.action);
+            setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: `✅ Applied: ${remediation.title}. Re-running audit to verify improvement...`
+            }]);
+        }
+    };
+    
+    // Check if there are violations that need fixing
+    const hasViolations = auditResults?.constraints?.some(
+        c => c.severity === 'critical' || c.severity === 'blocking' || c.severity === 'important'
+    );
+    
     const quickQuestions = [
         "Max height near Stephansdom?",
         "Can I build in a flood zone?",
-        "Climate 2036 mandates?"
+        "Climate mandates?"
     ];
     
     // SVG Icons
@@ -153,6 +200,51 @@ function ChatPanel({ auditContext, onLocationSuggested }) {
                             >
                                 {q}
                             </button>
+                        ))}
+                    </div>
+                )}
+                
+                {/* Fix Violations Button */}
+                {hasViolations && !remediations && (
+                    <div className="remediation-trigger">
+                        <button 
+                            className="fix-all-btn"
+                            onClick={handleGenerateRemediation}
+                            disabled={isGeneratingFix}
+                        >
+                            {isGeneratingFix ? (
+                                <><span className="spinner"></span> Analyzing...</>
+                            ) : (
+                                <>🔧 Fix All Violations</>
+                            )}
+                        </button>
+                    </div>
+                )}
+                
+                {/* Remediation Cards */}
+                {remediations && (
+                    <div className="remediation-list">
+                        <div className="remediation-header">
+                            <span>🤖 AI Remediation Strategies</span>
+                            <button className="close-remediation" onClick={() => setRemediations(null)}>×</button>
+                        </div>
+                        {remediations.combined.map((rem, idx) => (
+                            <div key={idx} className="remediation-card">
+                                <div className="rem-icon">{rem.icon}</div>
+                                <div className="rem-content">
+                                    <div className="rem-title">{rem.title}</div>
+                                    <div className="rem-desc">{rem.description}</div>
+                                    <div className="rem-impact">{rem.impact}</div>
+                                </div>
+                                {rem.action && (
+                                    <button 
+                                        className="rem-apply-btn"
+                                        onClick={() => handleApplyRemediation(rem)}
+                                    >
+                                        Apply
+                                    </button>
+                                )}
+                            </div>
                         ))}
                     </div>
                 )}

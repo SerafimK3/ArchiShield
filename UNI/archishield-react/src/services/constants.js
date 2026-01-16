@@ -1,11 +1,11 @@
 /**
- * ArchiShield Alpha V2 - Vienna 2036 Environmental & Regulatory Constants
+ * ArchiShield Alpha V2 - Vienna Environmental & Regulatory Constants
  * =======================================================================
  * Parametric Resilience & Zoning Engine
  * Data Ingestion Protocol: Environmental + Regulatory + Physical Layers
  */
 
-const VIENNA_2036 = {
+const APP_CONSTANTS = {
     // ═══════════════════════════════════════════════════════════════════════
     // GEOGRAPHIC LOCATION
     // ═══════════════════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ const VIENNA_2036 = {
     },
 
     // ═══════════════════════════════════════════════════════════════════════
-    // REGULATORY LAYER (Vienna Building Code 2036 - Wiener Bauordnung)
+    // REGULATORY LAYER (Vienna Building Code - Wiener Bauordnung)
     // ═══════════════════════════════════════════════════════════════════════
     zoningCode: {
         // Floor Area Ratio (Geschossflächenzahl)
@@ -146,7 +146,7 @@ const VIENNA_2036 = {
     },
 
     // ═══════════════════════════════════════════════════════════════════════
-    // THERMAL ENVELOPE CONSTANTS (Austrian OIB 2036 / EU EPBD)
+    // THERMAL ENVELOPE CONSTANTS (Austrian OIB / EU EPBD)
     // ═══════════════════════════════════════════════════════════════════════
     thermalEnvelopeConstants: {
         // Maximum WWR by orientation for passive house standard
@@ -269,11 +269,11 @@ const VIENNA_2036 = {
     // ═══════════════════════════════════════════════════════════════════════
     regulatory: {
         authority: "Magistrat der Stadt Wien - Baupolizei (MA 37)",
-        standardVersion: "ArchiShield-AT-2036-v2.0",
+        standardVersion: "ArchiShield-AT-V2.0",
         certificationBody: "Austrian Institute of Construction Engineering (OIB)",
         appealPeriod: 14,                 // days (Austrian admin law)
         validityPeriod: 3,                // years (building permits)
-        lastUpdated: "2036-01-01"
+        lastUpdated: "2026-01-16"
     },
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -289,8 +289,9 @@ const VIENNA_2036 = {
     }
 };
 
-// Alias for backward compatibility with existing code
-const SOFIA_2036 = VIENNA_2036;
+// Export for use in other services
+export { APP_CONSTANTS };
+export default APP_CONSTANTS;
 
 // Deep freeze all constants
 function deepFreeze(obj) {
@@ -302,9 +303,4 @@ function deepFreeze(obj) {
     return Object.freeze(obj);
 }
 
-deepFreeze(VIENNA_2036);
-
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = VIENNA_2036;
-}
+deepFreeze(APP_CONSTANTS);

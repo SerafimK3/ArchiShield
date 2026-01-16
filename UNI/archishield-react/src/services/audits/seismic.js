@@ -1,7 +1,14 @@
 /**
  * Seismic Resilience Audit Service
  * Evaluates building safety against geological and structural parameters.
+ * Supports material-aware calculations for Concrete vs Timber structures.
  */
+
+// Material properties affecting seismic performance
+const MATERIAL_PROPERTIES = {
+    CONCRETE: { weightMultiplier: 1.0, flexibility: 0.8, carbonFactor: 1.0, label: 'Reinforced Concrete' },
+    TIMBER: { weightMultiplier: 0.55, flexibility: 1.2, carbonFactor: 0.3, label: 'Cross-Laminated Timber (CLT)' }
+};
 
 export const SeismicAudit = {
     id: 'seismic',
@@ -10,7 +17,8 @@ export const SeismicAudit = {
     execute(building) {
         if (!building) return null;
 
-        const { lat, lng, height, structureType = 'reinforced_concrete' } = building;
+        const { lat, lng, height, material = 'CONCRETE' } = building;
+        const materialProps = MATERIAL_PROPERTIES[material] || MATERIAL_PROPERTIES.CONCRETE;
         const reasoning = [];
         let status = 'PASSED';
         let score = 100;
@@ -36,24 +44,29 @@ export const SeismicAudit = {
 
         // 2. Structural Integrity Check
         // Buildings over 40m in the sediment zone are higher risk
+        // Timber structures get a bonus due to lower mass and higher flexibility
+        const effectiveHeight = height * materialProps.weightMultiplier;
+        
         if (zone === 'Vienna Basin (Sediment)' && height > 40) {
-            const highRiskStructures = ['masonry', 'bearing_wall', 'timber'];
-            if (highRiskStructures.includes(structureType)) {
-                status = 'FAILED';
-                score = 30;
-                requirements.push("Structural System Change: Reinforced Concrete Core or Steel Frame REQUIRED");
-                reasoning.push(`❌ CRITICAL: ${height}m tall structure with high-risk system in sediment zone.`);
+            if (material === 'TIMBER') {
+                // CLT is actually good for seismic - lightweight and flexible
+                score = 90;
+                reasoning.push(`✓ CLT structure benefits from low mass and high ductility in sediment zone.`);
+                requirements.push("Verify CLT connections per EN 1995-1-1 for seismic");
             } else {
-                score = 80;
+                // Concrete is heavier, more risk in sediment
+                score = 75;
                 requirements.push("Damping System: Tuned Mass Damper Recommended for optimal resilience");
-                reasoning.push(`⚠ WARNING: High-rise in sediment zone. Seismic damping recommended.`);
+                reasoning.push(`⚠ WARNING: High-rise concrete in sediment zone. Seismic damping recommended.`);
             }
         } else if (zone === 'Flysch Zone (Bedrock)') {
             score = 98;
             reasoning.push("✓ PASS: Building sits on stable bedrock foundation.");
         } else {
-            score = 92;
-            reasoning.push("✓ PASS: Standard seismic compliance within sediment zone.");
+            // Timber bonus for standard sediment zone
+            const timberBonus = material === 'TIMBER' ? 5 : 0;
+            score = 92 + timberBonus;
+            reasoning.push(`✓ PASS: Standard seismic compliance within sediment zone.${timberBonus ? ' (CLT bonus applied)' : ''}`);
         }
 
         return {
@@ -68,16 +81,20 @@ export const SeismicAudit = {
                 zone,
                 pga: `${pga}g`,
                 amplification: `${amplification}x`,
-                stressLevel: this.calculateStress(height, amplification)
+                stressLevel: this.calculateStress(height, amplification, materialProps.weightMultiplier),
+                material: materialProps.label,
+                materialBonus: material === 'TIMBER' ? 'Lightweight CLT reduces seismic load' : null
             }
         };
     },
 
-    calculateStress(height, amplification) {
+    calculateStress(height, amplification, materialWeight = 1.0) {
         // Stress increases with height and soil amplification
+        // Lighter materials (timber) reduce stress significantly
         // Range 0-100
         const baseStress = (height / 80) * 50; // Max height in dataset usually around 80m
         const soilFactor = amplification > 1 ? 1.4 : 1.0;
-        return Math.min(Math.round(baseStress * soilFactor), 100);
+        const materialFactor = materialWeight;
+        return Math.min(Math.round(baseStress * soilFactor * materialFactor), 100);
     }
 };

@@ -3,8 +3,8 @@
  * 
  * Manages the execution and state of Vienna regulatory audits
  */
-import { useState, useCallback } from 'react';
-import { ZoningAudit, HeritageAudit, SubsurfaceAudit, Climate2036Audit, SeismicAudit, WindLoadAudit } from '../services/audits';
+import { useState, useCallback, useRef } from 'react';
+import { ZoningAudit, HeritageAudit, SubsurfaceAudit, ClimateAudit, SeismicAudit, WindLoadAudit } from '../services/audits';
 import SpatialUtils from '../services/spatial';
 import buildingsData from '../data/vienna_buildings.json';
 
@@ -12,7 +12,7 @@ const AUDIT_PHASES = [
     { id: 'zoning', name: 'Zoning', icon: '🏛️' },
     { id: 'heritage', name: 'Heritage', icon: '🏛️' },
     { id: 'subsurface', name: 'Subsurface', icon: '🚇' },
-    { id: 'climate', name: 'Climate 2036', icon: '🌡️' },
+    { id: 'climate', name: 'Climate', icon: '🌡️' },
     { id: 'structural', name: 'Structural Safety', icon: '🏗️' }
 ];
 
@@ -26,12 +26,118 @@ function detectDistrict(lat, lng) {
     return null;
 }
 
+/**
+ * Core audit execution logic - separated for reuse
+ * This runs all audits synchronously without delays
+ */
+function executeAllAudits(building, context) {
+    const auditResults = {};
+    let allConstraints = [];
+    let allMandates = [];
+    let totalScore = 0;
+    let passedCount = 0;
+
+    // Phase 1: Zoning
+    auditResults.zoning = ZoningAudit.execute(building, context);
+    allConstraints = [...allConstraints, ...auditResults.zoning.constraints];
+    totalScore += auditResults.zoning.score;
+    if (auditResults.zoning.passed) passedCount++;
+
+    // Phase 2: Heritage
+    auditResults.heritage = HeritageAudit.execute(building, context);
+    allConstraints = [...allConstraints, ...auditResults.heritage.constraints];
+    totalScore += auditResults.heritage.score;
+    if (auditResults.heritage.passed) passedCount++;
+
+    // Phase 3: Subsurface
+    auditResults.subsurface = SubsurfaceAudit.execute(building, context);
+    allConstraints = [...allConstraints, ...auditResults.subsurface.constraints];
+    totalScore += auditResults.subsurface.score;
+    if (auditResults.subsurface.passed) passedCount++;
+
+    // Phase 4: Climate
+    auditResults.climate = ClimateAudit.execute(building, context);
+    allConstraints = [...allConstraints, ...auditResults.climate.constraints];
+    allMandates = [...allMandates, ...(auditResults.climate.mandates || [])];
+    totalScore += auditResults.climate.score;
+    if (auditResults.climate.passed) passedCount++;
+
+    // Phase 5: Structural (Combined Seismic & Wind)
+    const seismicResult = SeismicAudit.execute(building);
+    const windResult = WindLoadAudit.execute(building, buildingsData.features);
+    
+    auditResults.seismic = seismicResult;
+    auditResults.wind = windResult;
+    
+    // Collect structural constraints
+    if (!seismicResult.passed) {
+        allConstraints.push({ id: 'seismic-fail', severity: 'critical', message: seismicResult.requirements[0] });
+    }
+    if (!windResult.passed) {
+        allConstraints.push({ id: 'wind-fail', severity: 'critical', message: windResult.requirements[0] });
+    }
+    
+    totalScore += (seismicResult.score + windResult.score) / 2;
+    if (seismicResult.passed && windResult.passed) passedCount++;
+
+    // Calculate overall feasibility (average of 5 phases)
+    const feasibility = Math.round(totalScore / 5);
+    const allPassed = passedCount === 5;
+    const hasBlocking = allConstraints.some(c => c.severity === 'blocking');
+    
+    let status, statusColor;
+    if (hasBlocking) {
+        status = 'REJECTED';
+        statusColor = 'danger';
+    } else if (allPassed && feasibility >= 80) {
+        status = 'HIGH - Ready for Submission';
+        statusColor = 'success';
+    } else if (feasibility >= 60) {
+        status = 'MEDIUM - Proceed with Caution';
+        statusColor = 'warning';
+    } else {
+        status = 'LOW - Significant Issues';
+        statusColor = 'danger';
+    }
+
+    // Find key risk
+    const criticalConstraints = allConstraints.filter(c => 
+        c.severity === 'blocking' || c.severity === 'critical'
+    );
+    const keyRisk = criticalConstraints[0]?.message || 'No critical constraints';
+
+    return {
+        audits: auditResults,
+        feasibility,
+        status,
+        statusColor,
+        keyRisk,
+        constraints: allConstraints,
+        mandates: allMandates,
+        passedCount,
+        totalAudits: 5
+    };
+}
+
 export function useSpotAudit() {
     const [results, setResults] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [currentPhase, setCurrentPhase] = useState(null);
     const [phaseIndex, setPhaseIndex] = useState(-1);
+    
+    // Configurable building parameters for live updates
+    const [buildingConfig, setBuildingConfig] = useState({
+        material: 'CONCRETE',  // 'CONCRETE' | 'TIMBER'
+        height: 20,
+        floors: 5,
+        footprint: 200,
+        rotation: 0  // 0-360 degrees
+    });
+    
+    // Use ref to store last audit context for instant re-audits
+    const lastAuditContext = useRef(null);
 
+    // Full audit with loading animation (for initial location clicks)
     const runSpotAudit = useCallback(async (latitude, longitude, buildingParams = {}) => {
         setIsLoading(true);
         setResults(null);
@@ -41,21 +147,28 @@ export function useSpotAudit() {
         // Find existing building height if select a building explicitly
         const existingBuilding = buildingParams.id ? buildingsData.features.find(f => f.properties.id === buildingParams.id) : null;
         
+        // Merge with current building config (for material, etc.)
+        const mergedParams = {
+            ...buildingConfig,
+            ...buildingParams
+        };
+        
         const building = {
             latitude,
             longitude,
             lat: latitude,
             lng: longitude,
-            height: buildingParams.height || existingBuilding?.properties?.height || 20,
-            floors: buildingParams.floors || existingBuilding?.properties?.levels || 5,
-            footprint: buildingParams.footprint || 200,
-            roofArea: buildingParams.roofArea || 200,
-            surfaceSeal: buildingParams.surfaceSeal || 70,
-            basementDepth: buildingParams.basementDepth || 5,
-            groundElevation: buildingParams.groundElevation || 0,
-            hasGreenRoof: buildingParams.hasGreenRoof || false,
-            hasSolarPanels: buildingParams.hasSolarPanels || false,
-            ...buildingParams
+            height: mergedParams.height || existingBuilding?.properties?.height || 20,
+            floors: mergedParams.floors || existingBuilding?.properties?.levels || 5,
+            footprint: mergedParams.footprint || 200,
+            roofArea: mergedParams.roofArea || 200,
+            surfaceSeal: mergedParams.surfaceSeal || 70,
+            basementDepth: mergedParams.basementDepth || 5,
+            groundElevation: mergedParams.groundElevation || 0,
+            hasGreenRoof: mergedParams.hasGreenRoof || false,
+            hasSolarPanels: mergedParams.hasSolarPanels || false,
+            material: mergedParams.material || 'CONCRETE',
+            ...mergedParams
         };
         
         const neighborhood = SpatialUtils.getNeighborhoodStats(
@@ -65,111 +178,26 @@ export function useSpotAudit() {
         );
         
         const context = { district, neighborhood };
-        const auditResults = {};
-        let allConstraints = [];
-        let allMandates = [];
-        let totalScore = 0;
-        let passedCount = 0;
+        
+        // Store context for future instant re-audits
+        lastAuditContext.current = { latitude, longitude, district, neighborhood, baseParams: mergedParams };
 
         try {
-            // Phase 1: Zoning
-            setPhaseIndex(0);
-            setCurrentPhase(AUDIT_PHASES[0]);
-            await delay(400);
-            auditResults.zoning = ZoningAudit.execute(building, context);
-            allConstraints = [...allConstraints, ...auditResults.zoning.constraints];
-            totalScore += auditResults.zoning.score;
-            if (auditResults.zoning.passed) passedCount++;
-
-            // Phase 2: Heritage
-            setPhaseIndex(1);
-            setCurrentPhase(AUDIT_PHASES[1]);
-            await delay(400);
-            auditResults.heritage = HeritageAudit.execute(building, context);
-            allConstraints = [...allConstraints, ...auditResults.heritage.constraints];
-            totalScore += auditResults.heritage.score;
-            if (auditResults.heritage.passed) passedCount++;
-
-            // Phase 3: Subsurface
-            setPhaseIndex(2);
-            setCurrentPhase(AUDIT_PHASES[2]);
-            await delay(400);
-            auditResults.subsurface = SubsurfaceAudit.execute(building, context);
-            allConstraints = [...allConstraints, ...auditResults.subsurface.constraints];
-            totalScore += auditResults.subsurface.score;
-            if (auditResults.subsurface.passed) passedCount++;
-
-            // Phase 4: Climate 2036
-            setPhaseIndex(3);
-            setCurrentPhase(AUDIT_PHASES[3]);
-            await delay(400);
-            auditResults.climate = Climate2036Audit.execute(building, context);
-            allConstraints = [...allConstraints, ...auditResults.climate.constraints];
-            allMandates = [...allMandates, ...(auditResults.climate.mandates || [])];
-            totalScore += auditResults.climate.score;
-            if (auditResults.climate.passed) passedCount++;
-
-            // Phase 5: Structural (Combined Seismic & Wind)
-            setPhaseIndex(4);
-            setCurrentPhase(AUDIT_PHASES[4]);
-            await delay(500);
-            
-            const seismicResult = SeismicAudit.execute(building);
-            const windResult = WindLoadAudit.execute(building, buildingsData.features);
-            
-            auditResults.seismic = seismicResult;
-            auditResults.wind = windResult;
-            
-            // Collect structural constraints
-            if (!seismicResult.passed) {
-                allConstraints.push({ id: 'seismic-fail', severity: 'critical', message: seismicResult.requirements[0] });
-            }
-            if (!windResult.passed) {
-                allConstraints.push({ id: 'wind-fail', severity: 'critical', message: windResult.requirements[0] });
-            }
-            
-            totalScore += (seismicResult.score + windResult.score) / 2;
-            if (seismicResult.passed && windResult.passed) passedCount++;
-
-            // Calculate overall feasibility (average of 5 phases)
-            const feasibility = Math.round(totalScore / 5);
-            const allPassed = passedCount === 5;
-            const hasBlocking = allConstraints.some(c => c.severity === 'blocking');
-            
-            let status, statusColor;
-            if (hasBlocking) {
-                status = 'REJECTED';
-                statusColor = 'danger';
-            } else if (allPassed && feasibility >= 80) {
-                status = 'HIGH - Ready for Submission';
-                statusColor = 'success';
-            } else if (feasibility >= 60) {
-                status = 'MEDIUM - Proceed with Caution';
-                statusColor = 'warning';
-            } else {
-                status = 'LOW - Significant Issues';
-                statusColor = 'danger';
+            // Animated phase progression
+            for (let i = 0; i < AUDIT_PHASES.length; i++) {
+                setPhaseIndex(i);
+                setCurrentPhase(AUDIT_PHASES[i]);
+                await delay(i === 4 ? 500 : 400); // Slightly longer for structural
             }
 
-            // Find key risk
-            const criticalConstraints = allConstraints.filter(c => 
-                c.severity === 'blocking' || c.severity === 'critical'
-            );
-            const keyRisk = criticalConstraints[0]?.message || 'No critical constraints';
+            // Execute all audits
+            const auditData = executeAllAudits(building, context);
 
             const result = {
                 success: true,
                 district,
                 building,
-                audits: auditResults,
-                feasibility,
-                status,
-                statusColor,
-                keyRisk,
-                constraints: allConstraints,
-                mandates: allMandates,
-                passedCount,
-                totalAudits: 5,
+                ...auditData,
                 timestamp: new Date().toISOString()
             };
 
@@ -192,12 +220,74 @@ export function useSpotAudit() {
             setResults(errorResult);
             return errorResult;
         }
-    }, []);
+    }, [buildingConfig]);
+    
+    // Silent re-audit (instant, no loading state) for parameter changes like material
+    const silentReAudit = useCallback((newConfig) => {
+        if (!lastAuditContext.current || !results) return;
+        
+        const { latitude, longitude, district, neighborhood, baseParams } = lastAuditContext.current;
+        
+        // Merge new config with base params
+        const mergedParams = { ...baseParams, ...newConfig };
+        
+        const building = {
+            latitude,
+            longitude,
+            lat: latitude,
+            lng: longitude,
+            height: mergedParams.height || 20,
+            floors: mergedParams.floors || 5,
+            footprint: mergedParams.footprint || 200,
+            roofArea: mergedParams.roofArea || 200,
+            surfaceSeal: mergedParams.surfaceSeal || 70,
+            basementDepth: mergedParams.basementDepth || 5,
+            groundElevation: mergedParams.groundElevation || 0,
+            hasGreenRoof: mergedParams.hasGreenRoof || false,
+            hasSolarPanels: mergedParams.hasSolarPanels || false,
+            material: mergedParams.material || 'CONCRETE',
+            ...mergedParams
+        };
+        
+        const context = { district, neighborhood };
+        
+        // Execute audits instantly (no delays, no loading state)
+        const auditData = executeAllAudits(building, context);
+        
+        // Update results in place
+        setResults(prev => ({
+            ...prev,
+            building,
+            ...auditData,
+            timestamp: new Date().toISOString()
+        }));
+        
+        // Update stored params for future re-audits
+        lastAuditContext.current.baseParams = mergedParams;
+        
+    }, [results]);
+    
+    // Update building config with instant re-audit (smooth material switching)
+    const updateBuildingConfig = useCallback((newConfig) => {
+        const updatedConfig = { ...buildingConfig, ...newConfig };
+        setBuildingConfig(updatedConfig);
+        
+        // Use silent re-audit for instant feedback
+        if (lastAuditContext.current) {
+            silentReAudit(updatedConfig);
+        }
+    }, [buildingConfig, silentReAudit]);
+    
+    // Convenience function to change just the material
+    const setMaterial = useCallback((material) => {
+        updateBuildingConfig({ material });
+    }, [updateBuildingConfig]);
 
     const clearResults = useCallback(() => {
         setResults(null);
         setPhaseIndex(-1);
         setCurrentPhase(null);
+        lastAuditContext.current = null;
     }, []);
 
     return {
@@ -207,7 +297,11 @@ export function useSpotAudit() {
         phaseIndex,
         phases: AUDIT_PHASES,
         runSpotAudit,
-        clearResults
+        clearResults,
+        // New exports for material control
+        buildingConfig,
+        setMaterial,
+        updateBuildingConfig
     };
 }
 

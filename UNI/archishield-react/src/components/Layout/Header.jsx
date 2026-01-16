@@ -1,5 +1,5 @@
 /**
- * Header Component - Premium Vienna Observatory
+ * Header Component - ArchiShield Dashboard
  */
 import React from 'react';
 import './Header.css';
@@ -9,22 +9,11 @@ export function Header({ district, coords }) {
         <header className="header glass">
             <div className="header-brand">
                 <div className="header-logo">
-                    <div className="logo-outer">
-                        <svg viewBox="0 0 32 32" width="32" height="32" fill="none">
-                            <rect width="32" height="32" rx="8" fill="url(#header-logo-grad)" />
-                            <circle cx="16" cy="16" r="6" fill="white" className="logo-pulse" />
-                            <defs>
-                                <linearGradient id="header-logo-grad" x1="0" y1="0" x2="32" y2="32">
-                                    <stop stopColor="#00d4ff"/>
-                                    <stop offset="1" stopColor="#00ff88"/>
-                                </linearGradient>
-                            </defs>
-                        </svg>
-                    </div>
+                    <img src="/logo.jpg" alt="ArchiShield Logo" className="brand-logo" />
                 </div>
                 <div className="header-title-wrapper">
-                    <div className="system-ref">SYSTEM: V-AUDIT / CORE-9</div>
-                    <h1 className="header-title">VIENNA <span>OBSERVATORY</span></h1>
+                    <div className="system-ref">PLATFORM: RESILIENCE ENGINE / V2.0</div>
+                    <h1 className="header-title">Archi<span>Shield</span></h1>
                 </div>
             </div>
 

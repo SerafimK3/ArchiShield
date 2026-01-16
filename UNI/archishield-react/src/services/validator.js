@@ -230,6 +230,5 @@ const BuildingValidator = {
 };
 
 // Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = BuildingValidator;
-}
+export { BuildingValidator };
+export default BuildingValidator;

@@ -5,7 +5,7 @@
 import React, { useEffect, useState } from 'react';
 import './TelemetryPanel.css';
 
-export function TelemetryPanel({ results, loading, phase }) {
+export function TelemetryPanel({ results, loading, phase, buildingConfig, onMaterialChange, onConfigChange }) {
     const [animatedFeasibility, setAnimatedFeasibility] = useState(0);
     
     useEffect(() => {
@@ -38,15 +38,15 @@ export function TelemetryPanel({ results, loading, phase }) {
                 </div>
 
                 <div className="loading-steps">
-                    {['Zoning', 'Heritage', 'Subsurface', 'Climate 2036', 'Structural Safety'].map((step, idx) => (
+                    {['Zoning', 'Heritage', 'Subsurface', 'Climate', 'Structural Safety'].map((step, idx) => (
                         <div 
                             key={step} 
                             className={`loading-step ${phase === step ? 'active' : ''} ${
-                                ['Zoning', 'Heritage', 'Subsurface', 'Climate 2036', 'Structural Safety'].indexOf(phase) > idx ? 'complete' : ''
+                                ['Zoning', 'Heritage', 'Subsurface', 'Climate', 'Structural Safety'].indexOf(phase) > idx ? 'complete' : ''
                             }`}
                         >
                             <div className="step-indicator">
-                                {['Zoning', 'Heritage', 'Subsurface', 'Climate 2036', 'Structural Safety'].indexOf(phase) > idx ? '✓' : (idx + 1)}
+                                {['Zoning', 'Heritage', 'Subsurface', 'Climate', 'Structural Safety'].indexOf(phase) > idx ? '✓' : (idx + 1)}
                             </div>
                             <span className="step-label">{step}</span>
                         </div>
@@ -103,6 +103,42 @@ export function TelemetryPanel({ results, loading, phase }) {
     const isExceedingRegulatory = proposedHeight > regulatoryLimit;
     const isExceedingContextual = proposedHeight > contextualLimit;
     const hasVariancePotential = isExceedingRegulatory && !isExceedingContextual;
+    
+    // Material toggle handler
+    const handleMaterialToggle = () => {
+        if (onMaterialChange) {
+            const newMaterial = buildingConfig?.material === 'CONCRETE' ? 'TIMBER' : 'CONCRETE';
+            onMaterialChange(newMaterial);
+        }
+    };
+    const currentMaterial = buildingConfig?.material || 'CONCRETE';
+    
+    // Building envelope controls
+    const currentHeight = buildingConfig?.height || proposedHeight || 20;
+    const currentFootprint = buildingConfig?.footprint || 200;
+    const currentRotation = buildingConfig?.rotation || 0;
+    const isOverLimit = currentHeight > contextualLimit;
+    
+    const handleHeightChange = (e) => {
+        const newHeight = parseInt(e.target.value);
+        if (onConfigChange) {
+            onConfigChange({ height: newHeight });
+        }
+    };
+    
+    const handleFootprintChange = (e) => {
+        const newFootprint = parseInt(e.target.value);
+        if (onConfigChange) {
+            onConfigChange({ footprint: newFootprint });
+        }
+    };
+    
+    const handleRotationChange = (e) => {
+        const newRotation = parseInt(e.target.value);
+        if (onConfigChange) {
+            onConfigChange({ rotation: newRotation });
+        }
+    };
 
     return (
         <div className="telemetry-panel">
@@ -160,9 +196,89 @@ export function TelemetryPanel({ results, loading, phase }) {
             <div className="constraints-section">
                 <div className="section-head">
                     <h3>Active Constraints</h3>
-                    <span className="constraint-count">{results.constraints?.length || 0} issues</span>
                 </div>
                 <div className="constraints-grid">
+                    
+                    {/* Building Envelope Slider Card */}
+                    <div className={`constraint-card envelope-card ${isOverLimit ? 'over-limit' : ''}`}>
+                        <div className="card-top">
+                            <span className="card-icon">📐</span>
+                            <span className="card-title">Building Envelope</span>
+                            {isOverLimit && <span className="limit-warning">⚠️ OVER LIMIT</span>}
+                        </div>
+                        
+                        <div className="envelope-slider">
+                            <div className="slider-row">
+                                <label>Height</label>
+                                <input 
+                                    type="range" 
+                                    min="5" 
+                                    max="100" 
+                                    value={currentHeight}
+                                    onChange={handleHeightChange}
+                                    className={isOverLimit ? 'over' : ''}
+                                />
+                                <span className={`slider-value ${isOverLimit ? 'over' : ''}`}>
+                                    {currentHeight}m
+                                </span>
+                            </div>
+                            <div className="slider-row">
+                                <label>Footprint</label>
+                                <input 
+                                    type="range" 
+                                    min="50" 
+                                    max="500" 
+                                    value={currentFootprint}
+                                    onChange={handleFootprintChange}
+                                />
+                                <span className="slider-value">{currentFootprint}㎡</span>
+                            </div>
+                            <div className="slider-row">
+                                <label>Rotation</label>
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="360" 
+                                    value={currentRotation}
+                                    onChange={handleRotationChange}
+                                    className="rotation-slider"
+                                />
+                                <span className="slider-value">{currentRotation}°</span>
+                            </div>
+                        </div>
+                        
+                        <div className="envelope-limits">
+                            <span>Limit: {contextualLimit}m</span>
+                            {isOverLimit && <span className="over-text">+{(currentHeight - contextualLimit).toFixed(0)}m over</span>}
+                        </div>
+                    </div>
+                    
+                    {/* Material Toggle Card */}
+                    <div className="constraint-card material-card">
+                        <div className="card-top">
+                            <span className="card-icon">🏗️</span>
+                            <span className="card-title">Construction Material</span>
+                        </div>
+                        <div className="material-toggle">
+                            <button 
+                                className={`material-btn ${currentMaterial === 'CONCRETE' ? 'active' : ''}`}
+                                onClick={() => onMaterialChange && onMaterialChange('CONCRETE')}
+                            >
+                                🧱 Concrete
+                            </button>
+                            <button 
+                                className={`material-btn ${currentMaterial === 'TIMBER' ? 'active' : ''}`}
+                                onClick={() => onMaterialChange && onMaterialChange('TIMBER')}
+                            >
+                                🪵 Timber (CLT)
+                            </button>
+                        </div>
+                        <div className="card-sublabel">
+                            {currentMaterial === 'TIMBER' 
+                                ? '✓ Carbon-negative • Seismic flex bonus' 
+                                : 'Standard construction • Higher mass'}
+                        </div>
+                    </div>
                     
                     {/* Card 1: Height Restriction (Zoning) */}
                     <div className="constraint-card">
@@ -274,11 +390,11 @@ export function TelemetryPanel({ results, loading, phase }) {
                         )}
                     </div>
 
-                    {/* Card 4: Climate 2036 Mandates */}
+                    {/* Card 4: Climate Mandates */}
                     <div className="constraint-card">
                         <div className="card-top">
                             <span className="card-icon">🌿</span>
-                            <span className="card-title">Climate 2036</span>
+                            <span className="card-title">Climate</span>
                         </div>
                         <div className={`card-value ${
                             climate?.mandates?.length > 2 ? 'orange' : 'green'

@@ -1,7 +1,7 @@
 /**
  * Vienna Spot-Audit - Main Application
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Header } from './components/Layout/Header';
 import { Map } from './components/Map';
 import { TelemetryPanel } from './components/TelemetryPanel';
@@ -19,7 +19,10 @@ function App() {
         phaseIndex, 
         phases,
         runSpotAudit, 
-        clearResults 
+        clearResults,
+        buildingConfig,
+        setMaterial,
+        updateBuildingConfig
     } = useSpotAudit();
     
     const [selectedLocation, setSelectedLocation] = useState(null);
@@ -38,6 +41,33 @@ function App() {
             floors: building.levels
         });
     }, [runSpotAudit]);
+    
+    // Calculate envelope data for 3D visualization
+    // Uses buildingConfig values so it updates when sliders change
+    const envelopeData = useMemo(() => {
+        if (!results?.success || !selectedLocation) return null;
+        
+        const contextualLimit = results.audits?.zoning?.contextualLimit || 21;
+        const currentHeight = buildingConfig?.height || results.building?.height || 20;
+        const currentFootprint = buildingConfig?.footprint || 200;
+        const currentRotation = buildingConfig?.rotation || 0;
+        const isOverLimit = currentHeight > contextualLimit;
+        
+        // Calculate offset based on footprint (sqrt for reasonable proportions)
+        const baseOffset = 0.0003; // ~30m
+        const footprintScale = Math.sqrt(currentFootprint / 200);
+        const offset = baseOffset * footprintScale;
+        
+        return {
+            lat: selectedLocation.lat,
+            lng: selectedLocation.lng,
+            height: currentHeight,
+            contextualLimit,
+            isOverLimit,
+            offset,
+            rotation: currentRotation
+        };
+    }, [results, selectedLocation, buildingConfig]);
 
     return (
         <div className="app">
@@ -53,6 +83,7 @@ function App() {
                     <Map 
                         onLocationSelect={handleLocationSelect}
                         onBuildingSelect={handleBuildingSelect}
+                        envelopeData={envelopeData}
                     />
                 </div>
 
@@ -62,6 +93,9 @@ function App() {
                         results={results} 
                         loading={isLoading}
                         phase={currentPhase?.name}
+                        buildingConfig={buildingConfig}
+                        onMaterialChange={setMaterial}
+                        onConfigChange={updateBuildingConfig}
                     />
                 </div>
             </main>
@@ -85,6 +119,8 @@ function App() {
                     constraints: results.constraints?.map(c => c.description),
                     mandates: results.mandates?.map(m => m.requirement)
                 } : null}
+                auditResults={results?.success ? results : null}
+                onApplyFix={updateBuildingConfig}
             />
         </div>
     );

@@ -71,16 +71,16 @@ const ArchiShieldEngine = {
         log.push("▓▓▓ PHASE 2: ENVIRONMENTAL & REGULATORY LAYERS ▓▓▓");
         log.push("");
         log.push("Environmental Layer (50-year predictive data):");
-        log.push(`  • Seismic: ${SOFIA_2036.environmentalData.seismicMagnitude}M (PGA ${SOFIA_2036.environmentalData.peakGroundAcceleration}g)`);
-        log.push(`  • Wind: ${SOFIA_2036.environmentalData.peakWindSpeedMph} mph (${SOFIA_2036.environmentalData.peakWindSpeedMs.toFixed(1)} m/s)`);
-        log.push(`  • Flood: BFE ${SOFIA_2036.environmentalData.baseFloodElevation}m + 1.2m = ${SOFIA_2036.environmentalData.designBFE}m`);
-        log.push(`  • Thermal: ${SOFIA_2036.environmentalData.heatwavePeakTemp}°C for ${SOFIA_2036.environmentalData.heatwaveDuration}h`);
+        log.push(`  • Seismic: ${APP_CONSTANTS.environmentalData.seismicMagnitude}M (PGA ${APP_CONSTANTS.environmentalData.peakGroundAcceleration}g)`);
+        log.push(`  • Wind: ${APP_CONSTANTS.environmentalData.peakWindSpeedMph} mph (${APP_CONSTANTS.environmentalData.peakWindSpeedMs.toFixed(1)} m/s)`);
+        log.push(`  • Flood: BFE ${APP_CONSTANTS.environmentalData.baseFloodElevation}m + 1.2m = ${APP_CONSTANTS.environmentalData.designBFE}m`);
+        log.push(`  • Thermal: ${APP_CONSTANTS.environmentalData.heatwavePeakTemp}°C for ${APP_CONSTANTS.environmentalData.heatwaveDuration}h`);
         log.push("");
-        log.push("Regulatory Layer (Sofia Urban Code 2036):");
-        log.push(`  • Max FAR: ${SOFIA_2036.zoningCode.maxFAR}`);
-        log.push(`  • Setback: ${SOFIA_2036.zoningCode.setbackFormula} × Height (min ${SOFIA_2036.zoningCode.minSetbackMeters}m)`);
-        log.push(`  • Max Height: ${SOFIA_2036.zoningCode.maxBuildingHeight}m`);
-        log.push(`  • Max Lot Coverage: ${SOFIA_2036.zoningCode.maxLotCoverage * 100}%`);
+        log.push("Regulatory Layer (Vienna Urban Code):");
+        log.push(`  • Max FAR: ${APP_CONSTANTS.zoningCode.maxFAR}`);
+        log.push(`  • Setback: ${APP_CONSTANTS.zoningCode.setbackFormula} × Height (min ${APP_CONSTANTS.zoningCode.minSetbackMeters}m)`);
+        log.push(`  • Max Height: ${APP_CONSTANTS.zoningCode.maxBuildingHeight}m`);
+        log.push(`  • Max Lot Coverage: ${APP_CONSTANTS.zoningCode.maxLotCoverage * 100}%`);
         log.push("");
 
         // Step 3: Execute All Audits
@@ -92,53 +92,53 @@ const ArchiShieldEngine = {
         const detailedReasoning = {};
 
         // Wind Load Audit
-        log.push("━━━ Wind Load Audit (WLA-2036) ━━━");
-        auditResults.wind = WindLoadAudit.execute(building, SOFIA_2036);
+        log.push("━━━ Wind Load Audit (WLA-V2) ━━━");
+        auditResults.wind = WindLoadAudit.execute(building, APP_CONSTANTS);
         log.push(`  Status: ${auditResults.wind.status} | Score: ${auditResults.wind.score.toFixed(1)}`);
         allRequirements.push(...(auditResults.wind.requirements || []));
         detailedReasoning.wind = auditResults.wind.reasoning;
         log.push("");
 
         // Zoning Audit
-        log.push("━━━ Zoning Compliance Audit (ZON-2036) ━━━");
-        auditResults.zoning = ZoningAudit.execute(building, SOFIA_2036);
+        log.push("━━━ Zoning Compliance Audit (ZON-V2) ━━━");
+        auditResults.zoning = ZoningAudit.execute(building, APP_CONSTANTS);
         log.push(`  Status: ${auditResults.zoning.status} | Score: ${auditResults.zoning.score.toFixed(1)}`);
         allRequirements.push(...(auditResults.zoning.requirements || []));
         detailedReasoning.zoning = auditResults.zoning.reasoning;
         log.push("");
 
         // Seismic Audit
-        log.push("━━━ Seismic Integrity Audit (SIA-2036) ━━━");
-        auditResults.seismic = SeismicAudit.execute(building, SOFIA_2036);
+        log.push("━━━ Seismic Integrity Audit (SIA-V2) ━━━");
+        auditResults.seismic = SeismicAudit.execute(building, APP_CONSTANTS);
         log.push(`  Status: ${auditResults.seismic.passed ? 'PASSED' : 'FAILED'} | Score: ${auditResults.seismic.score.toFixed(1)}`);
         allRequirements.push(...(auditResults.seismic.remediations || []).map(r => ({
             parameter: r.type || 'structural',
             current: 'Current design',
             required: r.recommendation || r,
-            citation: 'SIA-2036'
+            citation: 'SIA-V2'
         })));
         detailedReasoning.seismic = auditResults.seismic.reasoning;
         log.push("");
 
         // Hydraulic Audit
-        log.push("━━━ Hydraulic Integrity Audit (HIA-2036) ━━━");
-        auditResults.hydraulic = HydraulicAudit.execute(building, SOFIA_2036);
+        log.push("━━━ Hydraulic Integrity Audit (HIA-V2) ━━━");
+        auditResults.hydraulic = HydraulicAudit.execute(building, APP_CONSTANTS);
         log.push(`  Status: ${auditResults.hydraulic.status} | Score: ${auditResults.hydraulic.score.toFixed(1)}`);
         allRequirements.push(...(auditResults.hydraulic.requirements || []));
         detailedReasoning.hydraulic = auditResults.hydraulic.reasoning;
         log.push("");
 
         // Thermal Audit
-        log.push("━━━ Passive Thermal Envelope Audit (PTA-2036) ━━━");
-        auditResults.thermal = ThermalAudit.execute(building, SOFIA_2036);
+        log.push("━━━ Passive Thermal Envelope Audit (PTA-V2) ━━━");
+        auditResults.thermal = ThermalAudit.execute(building, APP_CONSTANTS);
         log.push(`  Status: ${auditResults.thermal.status} | Score: ${auditResults.thermal.score.toFixed(1)}`);
         allRequirements.push(...(auditResults.thermal.requirements || []));
         detailedReasoning.thermal = auditResults.thermal.reasoning;
         log.push("");
 
         // Ethics Audit
-        log.push("━━━ Krems Ethics Protocol (KEP-2036) ━━━");
-        auditResults.ethics = EthicsAudit.execute(building, SOFIA_2036);
+        log.push("━━━ Krems Ethics Protocol (KEP-V2) ━━━");
+        auditResults.ethics = EthicsAudit.execute(building, APP_CONSTANTS);
         log.push(`  Status: ${auditResults.ethics.status} | Score: ${auditResults.ethics.score.toFixed(1)}`);
         if (auditResults.ethics.ethicalWarning) {
             log.push(`  ⚠ ETHICAL WARNING: Social impact exceeds threshold`);
@@ -235,9 +235,9 @@ const ArchiShieldEngine = {
      */
     getEnvironment() {
         return {
-            location: SOFIA_2036.location,
-            environmental: SOFIA_2036.environmentalData,
-            zoning: SOFIA_2036.zoningCode,
+            location: APP_CONSTANTS.location,
+            environmental: APP_CONSTANTS.environmentalData,
+            zoning: APP_CONSTANTS.zoningCode,
             version: this.version
         };
     },

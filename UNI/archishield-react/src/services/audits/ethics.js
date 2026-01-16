@@ -6,7 +6,7 @@
 
 const EthicsAudit = {
     name: 'Krems Ethics Protocol',
-    code: 'KEP-2036',
+    code: 'KEP',
 
     /**
      * Execute ethics audit with 20% shade threshold
@@ -20,7 +20,7 @@ const EthicsAudit = {
         const failureReasons = [];
         let ethicalWarning = false;
 
-        reasoning.push("═══ KREMS ETHICS PROTOCOL (KEP-2036) ═══");
+        reasoning.push("═══ KREMS ETHICS PROTOCOL (KEP) ═══");
         reasoning.push(`Social Impact Assessment on Adjacent Vulnerable Communities`);
         reasoning.push(`Named after IMC Krems Innovation Lab - Pioneers of Ethical Architecture`);
         reasoning.push(`Shade Impact Threshold: ${env.ethicsConstants.maxShadeImpact * 100}% of daylight hours`);
@@ -38,12 +38,12 @@ const EthicsAudit = {
         reasoning.push(`  Adjacent to Red Zone: ${adjacentToRedZone ? 'Yes' : 'No'}`);
         if (adjacentToRedZone) {
             reasoning.push(`  Red Zone Direction: ${calculations.redZoneDirection}`);
-            reasoning.push(`  Sofia Designated Red Zones:`);
+            reasoning.push(`  Vienna Designated Red Zones:`);
             for (const zone of env.ethicsConstants.redZones) {
                 reasoning.push(`    • ${zone.name}: ${zone.population.toLocaleString()} residents`);
             }
         }
-        reasoning.push(`  [Citation: KEP-2036 §2.1, Sofia Social Equity Code]`);
+        reasoning.push(`  [Citation: KEP §2.1, Vienna Social Equity Code]`);
         reasoning.push("");
 
         // Step 2: Calculate Shadow Geometry
@@ -78,7 +78,7 @@ const EthicsAudit = {
         reasoning.push(`    Winter Solstice: ${winterShadow.toFixed(1)}m`);
         reasoning.push(`    Summer Solstice: ${summerShadow.toFixed(1)}m`);
         reasoning.push(`    Annual Average: ${avgShadowLength.toFixed(1)}m`);
-        reasoning.push(`  [Citation: KEP-2036 §3.1, Solar Geometry]`);
+        reasoning.push(`  [Citation: KEP §3.1, Solar Geometry]`);
         reasoning.push("");
 
         // Step 3: Calculate Shade Coverage Duration
@@ -109,7 +109,7 @@ const EthicsAudit = {
         reasoning.push(`  Estimated Shadow Duration: ${adjustedShadowDuration.toFixed(1)} hours`);
         reasoning.push(`  Shade Coverage: ${(shadePercentage * 100).toFixed(1)}% of daylight`);
         reasoning.push(`  Maximum Allowed: ${(env.ethicsConstants.maxShadeImpact * 100)}%`);
-        reasoning.push(`  [Citation: KEP-2036 §3.2, Shade Duration Calculation]`);
+        reasoning.push(`  [Citation: KEP §3.2, Shade Duration Calculation]`);
         reasoning.push("");
 
         // Step 4: Check Shade Impact Threshold
@@ -129,7 +129,7 @@ const EthicsAudit = {
                 current: `${(shadePercentage * 100).toFixed(1)}% of daylight hours`,
                 required: `≤${(env.ethicsConstants.maxShadeImpact * 100)}%`,
                 action: "Reduce building height or implement stepped massing on Red Zone side",
-                citation: "KEP-2036 §4.1, Solar Access Rights"
+                citation: "KEP §4.1, Solar Access Rights"
             });
             
             // Calculate required height reduction
@@ -141,7 +141,7 @@ const EthicsAudit = {
                 current: `${h}m`,
                 required: `≤${maxAllowedHeight.toFixed(1)}m on Red Zone side`,
                 action: "Step back upper floors by 30% or reduce overall height",
-                citation: "KEP-2036 §4.2"
+                citation: "KEP §4.2"
             });
         } else if (adjacentToRedZone) {
             reasoning.push(`  ✓ ETHICAL COMPLIANCE: Shade impact within limits`);
@@ -163,7 +163,7 @@ const EthicsAudit = {
         reasoning.push(`  Local Drainage Capacity: ${localDrainageCapacity.toLocaleString()} m²`);
         reasoning.push(`  Water Displacement Ratio: ${(waterDisplacement * 100).toFixed(1)}%`);
         reasoning.push(`  Maximum Allowed: ${(env.ethicsConstants.waterDisplacementLimit * 100)}%`);
-        reasoning.push(`  [Citation: KEP-2036 §5.1, Stormwater Impact]`);
+        reasoning.push(`  [Citation: KEP §5.1, Stormwater Impact]`);
         
         if (adjacentToRedZone && waterDisplacement > env.ethicsConstants.waterDisplacementLimit) {
             passed = false;
@@ -177,7 +177,7 @@ const EthicsAudit = {
                 current: `${(waterDisplacement * 100).toFixed(1)}%`,
                 required: `≤${(env.ethicsConstants.waterDisplacementLimit * 100)}%`,
                 action: "Install on-site detention basin or permeable surfaces",
-                citation: "KEP-2036 §5.2"
+                citation: "KEP §5.2"
             });
         } else {
             reasoning.push(`  ✓ COMPLIANT: Water displacement within limits`);
@@ -198,7 +198,7 @@ const EthicsAudit = {
         reasoning.push(`  Shadow Projection Area: ${shadowArea.toFixed(0)} m²`);
         reasoning.push(`  Estimated Affected Lots: ${affectedLots}`);
         reasoning.push(`  Estimated Affected Residents: ${affectedResidents}`);
-        reasoning.push(`  [Citation: KEP-2036 §6.1]`);
+        reasoning.push(`  [Citation: KEP §6.1]`);
         reasoning.push("");
 
         // Calculate score
@@ -242,6 +242,5 @@ const EthicsAudit = {
     }
 };
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = EthicsAudit;
-}
+export { EthicsAudit };
+export default EthicsAudit;

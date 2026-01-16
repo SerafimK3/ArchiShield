@@ -9,7 +9,7 @@ import buildingsData from '../../data/vienna_buildings.json';
 import waterData from '../../data/vienna_water.json';
 import { osmWaterToGeoJSON } from '../../services/osm_utils';
 
-export function Map({ onLocationSelect, onBuildingSelect }) {
+export function Map({ onLocationSelect, onBuildingSelect, envelopeData }) {
     const mapContainer = useRef(null);
     const mapRef = useRef(null);
     const markerRef = useRef(null);
@@ -17,7 +17,18 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
     const [show3D, setShow3D] = useState(true);
     const [showWaterways, setShowWaterways] = useState(true);
     const [showGeo, setShowGeo] = useState(false);
+    const [showEnvelope, setShowEnvelope] = useState(true);
     const [hoveredBuilding, setHoveredBuilding] = useState(null);
+    
+    // Use refs for callbacks to prevent map re-initialization on parent re-renders
+    const onLocationSelectRef = useRef(onLocationSelect);
+    const onBuildingSelectRef = useRef(onBuildingSelect);
+    
+    // Keep refs updated with latest callbacks
+    useEffect(() => {
+        onLocationSelectRef.current = onLocationSelect;
+        onBuildingSelectRef.current = onBuildingSelect;
+    }, [onLocationSelect, onBuildingSelect]);
 
     // Create a custom marker element
     const createMarkerElement = () => {
@@ -83,6 +94,114 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
             return newState;
         });
     }, []);
+
+    // Toggle Envelope visibility
+    const toggleEnvelope = useCallback(() => {
+        setShowEnvelope(prev => {
+            const newState = !prev;
+            if (mapRef.current && mapRef.current.getLayer('ghost-envelope')) {
+                mapRef.current.setLayoutProperty(
+                    'ghost-envelope',
+                    'visibility',
+                    newState ? 'visible' : 'none'
+                );
+            }
+            return newState;
+        });
+    }, []);
+
+    // Update envelope layer when envelopeData changes
+    useEffect(() => {
+        if (!mapRef.current || !envelopeData) return;
+        
+        const map = mapRef.current;
+        
+        // Create envelope polygon (rectangle around the click point)
+        const { lat, lng, height, offset = 0.0003, isOverLimit, rotation = 0 } = envelopeData;
+        
+        // Color changes based on whether height exceeds limit
+        const envelopeColor = isOverLimit ? '#ff4757' : '#00ff88';
+        const envelopeOpacity = isOverLimit ? 0.35 : 0.25;
+        
+        // Rotate a point around the center
+        const rotatePoint = (x, y, centerX, centerY, angleDeg) => {
+            const angleRad = (angleDeg * Math.PI) / 180;
+            const cos = Math.cos(angleRad);
+            const sin = Math.sin(angleRad);
+            const dx = x - centerX;
+            const dy = y - centerY;
+            return [
+                centerX + dx * cos - dy * sin,
+                centerY + dx * sin + dy * cos
+            ];
+        };
+        
+        // Define corners before rotation
+        const corners = [
+            [lng - offset, lat - offset],
+            [lng + offset, lat - offset],
+            [lng + offset, lat + offset],
+            [lng - offset, lat + offset]
+        ];
+        
+        // Apply rotation to each corner
+        const rotatedCorners = corners.map(([x, y]) => 
+            rotatePoint(x, y, lng, lat, rotation)
+        );
+        
+        // Close the polygon
+        rotatedCorners.push(rotatedCorners[0]);
+        
+        const envelopeGeoJSON = {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                properties: { height },
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [rotatedCorners]
+                }
+            }]
+        };
+        
+        // Update or add the envelope source/layer
+        if (map.getSource('envelope-source')) {
+            map.getSource('envelope-source').setData(envelopeGeoJSON);
+            // Update colors dynamically
+            map.setPaintProperty('ghost-envelope', 'fill-extrusion-color', envelopeColor);
+            map.setPaintProperty('ghost-envelope', 'fill-extrusion-opacity', envelopeOpacity);
+            map.setPaintProperty('ghost-envelope-outline', 'line-color', envelopeColor);
+        } else {
+            map.addSource('envelope-source', {
+                type: 'geojson',
+                data: envelopeGeoJSON
+            });
+            
+            map.addLayer({
+                id: 'ghost-envelope',
+                type: 'fill-extrusion',
+                source: 'envelope-source',
+                paint: {
+                    'fill-extrusion-color': envelopeColor,
+                    'fill-extrusion-height': ['get', 'height'],
+                    'fill-extrusion-base': 0,
+                    'fill-extrusion-opacity': envelopeOpacity
+                }
+            });
+            
+            // Add envelope outline for better visibility
+            map.addLayer({
+                id: 'ghost-envelope-outline',
+                type: 'line',
+                source: 'envelope-source',
+                paint: {
+                    'line-color': envelopeColor,
+                    'line-width': 2,
+                    'line-opacity': 0.8
+                }
+            });
+        }
+    }, [envelopeData]);
 
     useEffect(() => {
         if (mapRef.current) return;
@@ -323,8 +442,8 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
                     const coords = e.lngLat;
                     
                     // Notify parent about selected building
-                    if (onBuildingSelect) {
-                        onBuildingSelect({
+                    if (onBuildingSelectRef.current) {
+                        onBuildingSelectRef.current({
                             lat: coords.lat,
                             lng: coords.lng,
                             height: feature.properties.height,
@@ -335,8 +454,8 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
                     }
 
                     // Also update location
-                    if (onLocationSelect) {
-                        onLocationSelect(coords.lat, coords.lng);
+                    if (onLocationSelectRef.current) {
+                        onLocationSelectRef.current(coords.lat, coords.lng);
                     }
                     setCoords({ lat: coords.lat, lng: coords.lng });
 
@@ -379,8 +498,8 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
             }
 
             // Notify parent
-            if (onLocationSelect) {
-                onLocationSelect(lat, lng);
+            if (onLocationSelectRef.current) {
+                onLocationSelectRef.current(lat, lng);
             }
         });
 
@@ -390,7 +509,7 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
             map.remove();
             mapRef.current = null;
         };
-    }, [onLocationSelect, onBuildingSelect]);
+    }, []); // Empty deps - map should only initialize once
 
     return (
         <div className="map-wrapper">
@@ -422,6 +541,17 @@ export function Map({ onLocationSelect, onBuildingSelect }) {
             >
                 🔭 GEO
             </button>
+            
+            {/* Envelope Toggle Button */}
+            {envelopeData && (
+                <button 
+                    className={`map-toggle-envelope ${showEnvelope ? 'active' : ''}`}
+                    onClick={toggleEnvelope}
+                    title={showEnvelope ? 'Hide Max Envelope' : 'Show Max Envelope'}
+                >
+                    📐 MAX
+                </button>
+            )}
 
             {/* Hover Tooltip */}
             {hoveredBuilding && (

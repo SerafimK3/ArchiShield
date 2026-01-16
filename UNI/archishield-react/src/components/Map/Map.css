@@ -6,7 +6,7 @@
     min-height: 500px;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid rgba(0, 255, 65, 0.2);
+    border: 1px solid rgba(0, 201, 232, 0.3);
 }
 
 .map-container {
@@ -19,12 +19,12 @@
     bottom: 40px;
     left: 10px;
     background: rgba(10, 10, 15, 0.9);
-    color: #00ff41;
+    color: #00C9E8;
     padding: 6px 12px;
     border-radius: 6px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
-    border: 1px solid rgba(0, 255, 65, 0.3);
+    border: 1px solid rgba(0, 201, 232, 0.4);
 }
 
 .map-hint {
@@ -57,13 +57,13 @@
 
 .map-toggle-3d:hover {
     background: rgba(20, 20, 30, 0.95);
-    border-color: rgba(0, 255, 65, 0.4);
+    border-color: rgba(0, 201, 232, 0.6);
 }
 
 .map-toggle-3d.active {
     background: rgba(0, 255, 65, 0.15);
-    color: #00ff41;
-    border-color: #00ff41;
+    color: #00C9E8;
+    border-color: #00C9E8;
 }
 
 /* Waterways Toggle Button */
@@ -123,6 +123,35 @@
     box-shadow: 0 0 15px rgba(255, 170, 0, 0.2);
 }
 
+/* Envelope Toggle Button */
+.map-toggle-envelope {
+    position: absolute;
+    top: 270px;
+    right: 10px;
+    background: rgba(10, 10, 15, 0.9);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.map-toggle-envelope:hover {
+    background: rgba(20, 20, 30, 0.95);
+    border-color: rgba(0, 255, 136, 0.4);
+}
+
+.map-toggle-envelope.active {
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+    border-color: #00ff88;
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+}
+
 /* Building Tooltip */
 .map-building-tooltip {
     position: absolute;
@@ -143,7 +172,7 @@
 }
 
 .map-building-tooltip strong {
-    color: #00ff41;
+    color: #00C9E8;
     font-size: 14px;
     margin-bottom: 4px;
 }
@@ -155,17 +184,17 @@
 /* Make map controls blend with theme */
 .maplibregl-ctrl-group {
     background: rgba(10, 10, 15, 0.9) !important;
-    border: 1px solid rgba(0, 255, 65, 0.2) !important;
+    border: 1px solid rgba(0, 201, 232, 0.2) !important;
     border-radius: 6px !important;
 }
 
 .maplibregl-ctrl-group button {
     background: transparent !important;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.1) !important;
+    border-bottom: 1px solid rgba(0, 201, 232, 0.1) !important;
 }
 
 .maplibregl-ctrl-group button:hover {
-    background: rgba(0, 255, 65, 0.1) !important;
+    background: rgba(0, 201, 232, 0.1) !important;
 }
 
 .maplibregl-ctrl-group button span {
@@ -192,7 +221,7 @@
 .marker-pin {
     width: 24px;
     height: 24px;
-    background: linear-gradient(135deg, #00ff41 0%, #00d4ff 100%);
+    background: linear-gradient(135deg, #00C9E8 0%, #0072CE 100%);
     border: 3px solid #fff;
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
@@ -200,7 +229,7 @@
     left: 50%;
     top: 0;
     margin-left: -12px;
-    box-shadow: 0 4px 12px rgba(0, 255, 65, 0.5), 0 0 20px rgba(0, 255, 65, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 201, 232, 0.5), 0 0 20px rgba(0, 201, 232, 0.3);
     z-index: 100;
 }
 
@@ -219,7 +248,7 @@
 .marker-pulse {
     width: 40px;
     height: 40px;
-    background: rgba(0, 255, 65, 0.3);
+    background: rgba(0, 201, 232, 0.3);
     border-radius: 50%;
     position: absolute;
     top: -8px;

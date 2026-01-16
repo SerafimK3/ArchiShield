@@ -8,7 +8,7 @@
 export { ZoningAudit } from './zoning';
 export { HeritageAudit } from './heritage';
 export { SubsurfaceAudit } from './subsurface';
-export { Climate2036Audit } from './climate2036';
+export { ClimateAudit } from './climate';
 export { SeismicAudit } from './seismic';
 export { WindLoadAudit } from './wind_load';
 
