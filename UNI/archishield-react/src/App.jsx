@@ -116,11 +116,13 @@ function App() {
                     lng: selectedLocation?.lng,
                     district: results.district,
                     feasibility: results.feasibility,
-                    constraints: results.constraints?.map(c => c.description),
-                    mandates: results.mandates?.map(m => m.requirement)
+                    constraints: results.constraints?.map(c => c.description || c.message),
+                    mandates: results.mandates?.map(m => m.requirement),
+                    building: results.building
                 } : null}
-                auditResults={results?.success ? results : null}
-                onApplyFix={updateBuildingConfig}
+                onLocationSuggested={(loc) => {
+                    handleLocationSelect(loc.lat, loc.lng);
+                }}
             />
         </div>
     );

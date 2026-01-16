@@ -10,10 +10,21 @@ export function TelemetryPanel({ results, loading, phase, buildingConfig, onMate
     
     useEffect(() => {
         if (results?.feasibility) {
-            const timer = setTimeout(() => {
-                setAnimatedFeasibility(results.feasibility);
-            }, 100);
-            return () => clearTimeout(timer);
+            let start = animatedFeasibility;
+            const end = results.feasibility;
+            const duration = 1200;
+            const startTime = performance.now();
+
+            const animateValue = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+                const currentVal = Math.round(start + (end - start) * easeProgress);
+                setAnimatedFeasibility(currentVal);
+                if (progress < 1) requestAnimationFrame(animateValue);
+            };
+
+            requestAnimationFrame(animateValue);
         }
     }, [results?.feasibility]);
 
@@ -182,7 +193,9 @@ export function TelemetryPanel({ results, loading, phase, buildingConfig, onMate
                         />
                     </svg>
                     <div className="gauge-center">
-                        <span className="gauge-value">{feasibility}%</span>
+                        <span className="gauge-value">
+                            {animatedFeasibility}<span className="percent-sign">%</span>
+                        </span>
                         <span className="gauge-label">
                             {feasibility >= 80 ? 'High Approval Probability' : 
                              feasibility >= 60 ? 'Moderate - Review Required' : 
