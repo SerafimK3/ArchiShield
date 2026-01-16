@@ -225,8 +225,3 @@ export async function getRemediationSuggestions(auditResults) {
     };
 }
 
-export {
-    generateRuleBasedRemediations,
-    generateAIRemediation,
-    getRemediationSuggestions
-};
